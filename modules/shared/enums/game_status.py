@@ -1,0 +1,15 @@
+
+
+
+
+
+
+
+
+
+# NOT_STARTED
+# RUNNING
+# CHECK
+# CHECKMATE
+# STALEMATE
+# FINISHED
