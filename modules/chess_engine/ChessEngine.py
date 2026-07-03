@@ -22,10 +22,11 @@ class ChessEngine:
     def __init__(self):
         self.board = chess.Board()
         self._san_history: List[str] = []
-    #! TODO:
-    #! Review whether _san_history should be kept.
-    #! python-chess already provides board.move_stack,
-    #! but it does not preserve SAN notation.
+        """
+        Stores the move history in SAN notation.
+        python-chess preserves only chess.Move objects
+        inside board.move_stack, not their SAN strings.
+        """
 
 #% ==================================================
 #! Game Management
@@ -295,9 +296,7 @@ class ChessEngine:
         """
         return self.board.fen()
 
-#! TODO:
-#! If _san_history is kept, loading a new FEN should also clear it.
-#! Review after deciding the future of _san_history.
+
     def set_fen(self, fen: str) -> None:
         """
         Set the current board position from a FEN string.
@@ -306,6 +305,7 @@ class ChessEngine:
             fen: A valid Forsyth-Edwards Notation (FEN) string.
         """
         self.board.set_fen(fen)
+        self._san_history.clear()
 
 
 #% ==================================================
