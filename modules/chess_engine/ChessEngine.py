@@ -1,5 +1,7 @@
 import chess
 from typing import Optional, List
+from modules.shared.enums.player_color import PlayerColor
+
 
 
 class ChessEngine:
@@ -11,9 +13,9 @@ class ChessEngine:
     board state. It does not manage the overall game flow or UI.
     """
 
-    #% ==================================================
-    #! Constructor
-    #% ==================================================
+#% ==================================================
+#! Constructor
+#% ==================================================
 
     def __init__(self):  #   (Constructor)   Creates a new chessboard & Creates a record of moves
         self.board = chess.Board()
@@ -23,9 +25,9 @@ class ChessEngine:
         # python-chess already provides board.move_stack.
         # Decide later whether to keep this cache or rely on the library.
 
-    #% ==================================================
-    #! Game Management
-    #% ==================================================
+#% ==================================================
+#! Game Management
+#% ==================================================
 
     def reset(self) -> None:   
         """Reset the chess game to its initial state."""
@@ -33,9 +35,9 @@ class ChessEngine:
         self._move_log.clear() # # TODO: Re-evaluate _move_log after ChessEngine review.
 
 
-    #% ==================================================
-    #! Move Validation
-    #% ==================================================
+#% ==================================================
+#! Move Validation
+#% ==================================================
 
 
     def get_legal_moves(self) -> List[chess.Move]:
@@ -67,9 +69,9 @@ class ChessEngine:
         """
         return self._find_move(from_square, to_square) is not None
 
-    #% ==================================================
-    #! Move Execution
-    #% ==================================================
+#% ==================================================
+#! Move Execution
+#% ==================================================
 
 
     def make_move(self, from_square: int, to_square: int,    
@@ -90,8 +92,6 @@ class ChessEngine:
         self._move_log.append(san) #! TODO: Review _move_log usage after ChessEngine refactoring.
 
         return legal_move
-
-
 
 #% ==================================================
 #! Board Queries
@@ -134,16 +134,107 @@ class ChessEngine:
         return piece.piece_type if piece else None
 
 
-# 31
-    def get_piece_color_at(self, square: int) -> Optional[bool]:
-        piece = self.board.piece_at(square)
-        return piece.color if piece else None
+    def get_piece_color_at(self, square: int) -> Optional[PlayerColor]:
+        """
+        Return the color of the piece located on the given square.
+        Args:
+            square: The board square to inspect.
+        Returns:
+            The piece color if one exists; otherwise None.
+        """
+        piece = self.get_piece_at(square)
+
+        if piece is None:
+            return None
+
+        return (
+            PlayerColor.WHITE
+            if piece.color == chess.WHITE
+            else PlayerColor.BLACK
+        )
+
+
+    def get_piece_map(self) -> dict[int, chess.Piece]:
+        """
+        Return a mapping of all occupied squares to their chess pieces.
+        Returns:
+            A dictionary where the key is the square index and
+            the value is the corresponding chess piece.
+        """
+        return dict(self.board.piece_map())
+
+
+#% ==================================================
+#! Game Status
+#% ==================================================
+
+    def is_check(self) -> bool:
+        """
+        Check whether the current player's king is in check.
+        Returns:
+            True if the current player is in check; otherwise False.
+        """
+        return self.board.is_check()
+
+
+    def is_checkmate(self) -> bool:
+        """
+        Check whether the current game is in checkmate.
+
+        Returns:
+            True if the game has ended by checkmate; otherwise False.
+        """
+        return self.board.is_checkmate()
+
+
+    def is_stalemate(self) -> bool:
+        """
+        Check whether the current game is in stalemate.
+
+        Returns:
+            True if the game has ended by stalemate; otherwise False.
+        """
+        return self.board.is_stalemate()
+
+
+    def is_insufficient_material(self) -> bool:
+        """
+        Check whether the game has insufficient material for checkmate.
+
+        Returns:
+            True if neither player has enough material to deliver
+            checkmate; otherwise False.
+        """
+        return self.board.is_insufficient_material()
+
+
+    def is_game_over(self) -> bool:
+        """
+        Check whether the current game has ended.
+
+        Returns:
+            True if the game is over; otherwise False.
+        """
+        return self.board.is_game_over()
 
 
 
 
-    
-    get_piece_map()
+can_claim_draw()
+
+is_fifty_moves()
+
+is_repetition()
+
+result()
+
+outcome()
+
+outcome_reason()
+
+
+
+
 
 
 
@@ -179,15 +270,7 @@ class ChessEngine:
 
 
 
-    # ==================================================
-    # Game Status
-    # ==================================================
 
-    is_check()
-
-    is_checkmate()
-
-    ...
 
 
     # ==================================================
@@ -220,37 +303,27 @@ class ChessEngine:
 
         
 
-# 30
-    def is_check(self) -> bool:
-        return self.board.is_check()
-# 29
-    def is_checkmate(self) -> bool:
-        return self.board.is_checkmate()
-# 28
-    def is_stalemate(self) -> bool:
-        return self.board.is_stalemate()
-# 27
-    def is_insufficient_material(self) -> bool:
-        return self.board.is_insufficient_material()
-# 26
-    def is_game_over(self) -> bool:
-        return self.board.is_game_over()
-# 25
+
+
+
+        
+
+# 24
     def can_claim_draw(self) -> bool:
         return self.board.can_claim_draw()
-# 24
+# 23
     def is_fifty_moves(self) -> bool:
         return self.board.is_fifty_moves()
-# 23
+# 22
     def is_repetition(self) -> bool:
         return self.board.is_repetition()
-# 22
+# 21
     def result(self) -> str:
         return self.board.result()
-# 21
+# 20
     def outcome(self) -> Optional[chess.Outcome]:
         return self.board.outcome()
-# 20
+# 19
     def outcome_reason(self) -> Optional[str]:
         outcome = self.board.outcome()
         if outcome is None:
@@ -274,45 +347,45 @@ class ChessEngine:
         if outcome.termination == chess.Termination.VARIANT_LOSS:
             return "variant_loss"
         return "unknown"
-# 19
+# 18
     def get_turn(self) -> bool: 
         return self.board.turn
-# 18
+# 17
     def get_turn_color(self) -> str:
         return "white" if self.board.turn else "black"
-# 17
+# 16
     def get_fen(self) -> str: #get board state in FEN notation
         return self.board.fen()
-# 16
+# 15
     def set_fen(self, fen: str) -> None: #set board state in FEN notation
         self.board = chess.Board(fen)
-# 15
+# 14
     def get_san(self, move: chess.Move) -> str:
         return self.board.san(move)
-# 14
+# 13
     def get_last_san(self) -> Optional[str]: #The last move of the game
         return self._move_log[-1] if self._move_log else None
-# 13
+# 12
     def get_move_log(self) -> List[str]: # Tha all moves of the game are returned in SAN notation.
         return list(self._move_log)
 
 
-# 12
+# 11
     def is_castling_move(self, move: chess.Move) -> bool: # Castling rookie move and king move are returned as true.
         return self.board.is_castling(move)
-# 11
+# 10
     def is_en_passant_move(self, move: chess.Move) -> bool:
         return self.board.is_en_passant(move)
-# 10
+# 9
     def get_last_move(self) -> Optional[chess.Move]:
         return self.board.peek() if self.board.move_stack else None
-# 9
+# 8
     def has_king(self, color: bool) -> bool:
         return any(
             piece and piece.piece_type == chess.KING and piece.color == color
             for piece in self.board.piece_map().values()
         )
-# 8
+# 7
     def get_board_state(self) -> dict:
         state = {
             "fen": self.get_fen(),
@@ -328,7 +401,7 @@ class ChessEngine:
             "fullmove_number": self.board.fullmove_number,
         }
         return state
-# 7
+# 6
     def undo_last_move(self) -> Optional[chess.Move]:
         if self.board.move_stack:
             move = self.board.pop()
@@ -336,15 +409,13 @@ class ChessEngine:
                 self._move_log.pop()
             return move
         return None
-# 6
+# 5
     def push_san(self, san: str) -> chess.Move: #A movement written in SAN format is executed.
         move = self.board.parse_san(san)
         self.board.push(move)
         self._move_log.append(san)
         return move
-# 5
-    def get_piece_map(self) -> dict:
-        return dict(self.board.piece_map())
+
 # 4
     def parse_uci(self, uci: str) -> chess.Move:
         return chess.Move.from_uci(uci)
