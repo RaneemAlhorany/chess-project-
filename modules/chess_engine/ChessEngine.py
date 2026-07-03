@@ -1,5 +1,7 @@
 import chess
+
 from typing import Optional, List
+
 from modules.shared.enums.player_color import PlayerColor
 
 
@@ -17,13 +19,13 @@ class ChessEngine:
 #! Constructor
 #% ==================================================
 
-    def __init__(self):  #   (Constructor)   Creates a new chessboard & Creates a record of moves
+    def __init__(self):
         self.board = chess.Board()
-        self._move_log: List[str] = [] #! can delete
-        ## TODO:
-        # Re-evaluate whether _move_log is necessary.
-        # python-chess already provides board.move_stack.
-        # Decide later whether to keep this cache or rely on the library.
+        self._san_history: List[str] = []
+    #! TODO:
+    #! Review whether _san_history should be kept.
+    #! python-chess already provides board.move_stack,
+    #! but it does not preserve SAN notation.
 
 #% ==================================================
 #! Game Management
@@ -32,7 +34,7 @@ class ChessEngine:
     def reset(self) -> None:   
         """Reset the chess game to its initial state."""
         self.board.reset()
-        self._move_log.clear() # # TODO: Re-evaluate _move_log after ChessEngine review.
+        self._san_history.clear()
 
 
 #% ==================================================
@@ -44,7 +46,7 @@ class ChessEngine:
         """
         Return all legal moves for the current board position.
         Returns:
-            List[chess.Move]: A list of all legal moves.
+            A list of all legal chess moves.
         """
         return list(self.board.legal_moves)
 
@@ -89,7 +91,7 @@ class ChessEngine:
 
         san = self.board.san(legal_move)
         self.board.push(legal_move)
-        self._move_log.append(san) #! TODO: Review _move_log usage after ChessEngine refactoring.
+        self._san_history.append(san) 
 
         return legal_move
 
@@ -218,31 +220,282 @@ class ChessEngine:
         return self.board.is_game_over()
 
 
+    def can_claim_draw(self) -> bool:
+        """
+        Check whether the current player can claim a draw.
+
+        Returns:
+            True if the current player is allowed to claim
+            a draw according to the rules of chess;
+            otherwise False.
+        """
+        return self.board.can_claim_draw()
 
 
-can_claim_draw()
+    def is_fifty_moves(self) -> bool:
+        """
+        Check whether the fifty-move rule condition has been reached.
 
-is_fifty_moves()
+        Returns:
+            True if the fifty-move rule applies;
+            otherwise False.
+        """
+        return self.board.is_fifty_moves()
+ 
 
-is_repetition()
+    def is_repetition(self) -> bool:
+        """
+        Check whether the current board position has been repeated.
 
-result()
-
-outcome()
-
-outcome_reason()
-
-
-
-
+        Returns:
+            True if the current position satisfies the repetition
+            rule; otherwise False.
+        """
+        return self.board.is_repetition()
 
 
+    def result(self) -> str:
+        """
+        Return the official result of the current game.
+
+        Returns:
+            The game result in standard chess notation:
+            "1-0" for a White win,
+            "0-1" for a Black win,
+            "1/2-1/2" for a draw,
+            or "*" if the game is still in progress.
+        """
+        return self.board.result()
+
+#% ==================================================
+#! Board State
+#% ==================================================
 
 
-# ! last section in the file
-#$ ==================================================
+    def get_turn_color(self) -> PlayerColor:
+        """
+        Return the color of the player whose turn it is.
+
+        Returns:
+            The current player's color.
+        """
+        return (
+            PlayerColor.WHITE
+            if self.board.turn == chess.WHITE
+            else PlayerColor.BLACK
+        )
+
+
+    def get_fen(self) -> str:
+        """
+        Return the current board position in FEN notation.
+
+        Returns:
+            The current board state as a Forsyth-Edwards Notation (FEN) string.
+        """
+        return self.board.fen()
+
+#! TODO:
+#! If _san_history is kept, loading a new FEN should also clear it.
+#! Review after deciding the future of _san_history.
+    def set_fen(self, fen: str) -> None:
+        """
+        Set the current board position from a FEN string.
+
+        Args:
+            fen: A valid Forsyth-Edwards Notation (FEN) string.
+        """
+        self.board.set_fen(fen)
+
+
+#% ==================================================
+#! Move History
+#% ==================================================
+
+    def get_last_san(self) -> Optional[str]:
+        """
+        Return the last move in SAN notation.
+
+        Returns:
+            The last move in Standard Algebraic Notation (SAN)
+            if one exists; otherwise None.
+        """
+        return self._san_history[-1] if self._san_history else None
+
+
+    def get_san_history(self) -> List[str]:
+        """
+        Return the complete move history in SAN notation.
+
+        Returns:
+            A copy of the move history, where each move is
+            represented in Standard Algebraic Notation (SAN).
+        """
+        return list(self._san_history)
+
+#% ==================================================
+#! Move Utilities
+#% ==================================================
+
+
+    def get_san(self, move: chess.Move) -> str:
+        """
+        Return the SAN representation of a chess move.
+
+        Args:
+            move: The move to convert.
+
+        Returns:
+            The move in Standard Algebraic Notation (SAN).
+        """
+        return self.board.san(move)
+
+
+    def push_san(self, san: str) -> chess.Move:
+        """
+        Execute a move written in Standard Algebraic Notation (SAN).
+
+        Args:
+            san: The move in SAN format.
+
+        Returns:
+            The executed chess move.
+        """
+        move = self.board.parse_san(san)
+        self.board.push(move)
+        self._san_history.append(san) 
+
+        return move
+
+
+    def undo_last_move(self) -> Optional[chess.Move]:
+        """
+        Undo the last executed move.
+
+        Returns:
+            The undone chess move if one exists;
+            otherwise None.
+        """
+
+        if not self.board.move_stack:
+            return None
+
+        move = self.board.pop()
+
+        if self._san_history:
+            self._san_history.pop()
+
+        return move
+ 
+
+
+#% ==================================================
+#! Special Moves
+#% ==================================================
+
+
+    def is_castling_move(self, move: chess.Move) -> bool:
+        """
+        Check whether the given move is a castling move.
+
+        Args:
+            move: The move to inspect.
+
+        Returns:
+            True if the move is a castling move; otherwise False.
+        """
+        return self.board.is_castling(move)
+
+ 
+    def is_en_passant_move(self, move: chess.Move) -> bool:
+        """
+        Check whether the given move is an en passant capture.
+
+        Args:
+            move: The move to inspect.
+
+        Returns:
+            True if the move is an en passant capture; otherwise False.
+        """
+        return self.board.is_en_passant(move)
+
+
+
+#% ==================================================
+#! UCI Utilities
+#% ==================================================
+
+    def parse_uci(self, uci: str) -> chess.Move:
+        """
+        Parse a UCI move string into a chess.Move object.
+
+        Args:
+            uci: A move in Universal Chess Interface (UCI) format.
+
+        Returns:
+            The corresponding chess.Move object.
+        """
+        return chess.Move.from_uci(uci)
+
+
+    def uci_to_from_square(self, uci: str) -> int:
+        """
+        Return the source square from a UCI move string.
+
+        Args:
+            uci: A move in Universal Chess Interface (UCI) format.
+
+        Returns:
+            The source square index.
+        """
+        return self.parse_uci(uci).from_square
+
+
+    def uci_to_to_square(self, uci: str) -> int:
+        """
+        Return the destination square from a UCI move string.
+
+        Args:
+            uci: A move in Universal Chess Interface (UCI) format.
+
+        Returns:
+            The destination square index.
+        """
+        return self.parse_uci(uci).to_square
+
+
+    def uci_get_promotion(self, uci: str) -> Optional[int]:
+        """
+        Return the promotion piece encoded in a UCI move string.
+
+        Args:
+            uci: A move in Universal Chess Interface (UCI) format.
+
+        Returns:
+            The promotion piece type if present; otherwise None.
+        """
+        return self.parse_uci(uci).promotion
+
+
+#% ==================================================
+#! Board Utilities
+#% ==================================================
+
+    def get_last_move(self) -> Optional[chess.Move]:
+        """
+        Return the last executed move.
+
+        Returns:
+            The last chess move if one exists; otherwise None.
+        """
+        return self.board.peek() if self.board.move_stack else None
+
+
+
+
+#% ==================================================
 #! Private Helper Methods
-#$ ==================================================
+#% ==================================================
 
     def _find_move(self, from_square: int, to_square: int, 
                    promotion: Optional[int] = None) -> Optional[chess.Move]:
@@ -266,64 +519,29 @@ outcome_reason()
         return None
 
 
+# ///////////////////////////////////////////////////
 
 
 
+#! TODO: Review whether this method is needed.
+    def is_pawn_promotion_move(self, from_square: int, to_square: int) -> bool: 
+        piece = self.board.piece_at(from_square)
 
+        if piece is None or piece.piece_type != chess.PAWN:
+            return False
 
+        return is_promotion_rank(to_square, piece.color == chess.WHITE)
 
+#! TODO:
+#! Review whether ChessEngine should expose python-chess Outcome objects
+#! or convert them into project-specific data structures.
 
-    # ==================================================
-    # FEN
-    # ==================================================
-
-    get_fen()
-
-    set_fen()
-
-
-    # ==================================================
-    # Move History
-    # ==================================================
-
-    get_last_san()
-
-    get_move_log()
-
-
-
-    # !Utility Methods
-
-
-
-
-
-
-
-
-        
-
-
-
-
-        
-
-# 24
-    def can_claim_draw(self) -> bool:
-        return self.board.can_claim_draw()
-# 23
-    def is_fifty_moves(self) -> bool:
-        return self.board.is_fifty_moves()
-# 22
-    def is_repetition(self) -> bool:
-        return self.board.is_repetition()
-# 21
-    def result(self) -> str:
-        return self.board.result()
-# 20
     def outcome(self) -> Optional[chess.Outcome]:
         return self.board.outcome()
-# 19
+
+#! TODO:
+#! Replace string literals with GameEndReason enum.
+#! Review after creating GameEndReason.
     def outcome_reason(self) -> Optional[str]:
         outcome = self.board.outcome()
         if outcome is None:
@@ -347,45 +565,27 @@ outcome_reason()
         if outcome.termination == chess.Termination.VARIANT_LOSS:
             return "variant_loss"
         return "unknown"
-# 18
-    def get_turn(self) -> bool: 
-        return self.board.turn
-# 17
-    def get_turn_color(self) -> str:
-        return "white" if self.board.turn else "black"
-# 16
-    def get_fen(self) -> str: #get board state in FEN notation
-        return self.board.fen()
-# 15
-    def set_fen(self, fen: str) -> None: #set board state in FEN notation
-        self.board = chess.Board(fen)
-# 14
-    def get_san(self, move: chess.Move) -> str:
-        return self.board.san(move)
-# 13
-    def get_last_san(self) -> Optional[str]: #The last move of the game
-        return self._move_log[-1] if self._move_log else None
-# 12
-    def get_move_log(self) -> List[str]: # Tha all moves of the game are returned in SAN notation.
-        return list(self._move_log)
 
 
-# 11
-    def is_castling_move(self, move: chess.Move) -> bool: # Castling rookie move and king move are returned as true.
-        return self.board.is_castling(move)
-# 10
-    def is_en_passant_move(self, move: chess.Move) -> bool:
-        return self.board.is_en_passant(move)
-# 9
-    def get_last_move(self) -> Optional[chess.Move]:
-        return self.board.peek() if self.board.move_stack else None
-# 8
+#! TODO:
+#! Review whether has_king() is actually needed.
+#! ChessEngine always operates on valid chess positions,
+#! where both kings are guaranteed to exist.
     def has_king(self, color: bool) -> bool:
         return any(
             piece and piece.piece_type == chess.KING and piece.color == color
             for piece in self.board.piece_map().values()
         )
-# 7
+
+
+#! TODO:
+#! Review whether get_board_state() should return a project-specific
+#! BoardState dataclass instead of a generic dictionary.
+#! This will improve type safety, readability, and API consistency.
+#! Also review whether move_count should depend on
+#! _san_history or board.move_stack.
+
+
     def get_board_state(self) -> dict:
         state = {
             "fen": self.get_fen(),
@@ -397,51 +597,11 @@ outcome_reason()
             "is_insufficient_material": self.is_insufficient_material(),
             "is_fifty_moves": self.is_fifty_moves(),
             "is_repetition": self.is_repetition(),
-            "move_count": len(self._move_log),
+            "move_count": len(self._san_history),
             "fullmove_number": self.board.fullmove_number,
         }
         return state
-# 6
-    def undo_last_move(self) -> Optional[chess.Move]:
-        if self.board.move_stack:
-            move = self.board.pop()
-            if self._move_log:
-                self._move_log.pop()
-            return move
-        return None
-# 5
-    def push_san(self, san: str) -> chess.Move: #A movement written in SAN format is executed.
-        move = self.board.parse_san(san)
-        self.board.push(move)
-        self._move_log.append(san)
-        return move
 
-# 4
-    def parse_uci(self, uci: str) -> chess.Move:
-        return chess.Move.from_uci(uci)
-# 3
-    def uci_to_from_square(self, uci: str) -> int:
-        return chess.Move.from_uci(uci).from_square
-# 2
-    def uci_to_to_square(self, uci: str) -> int:
-        return chess.Move.from_uci(uci).to_square
-# 1
-    def uci_get_promotion(self, uci: str) -> Optional[int]:
-        return chess.Move.from_uci(uci).promotion
-
-
-///////////////////////////////////////////////
-
-
-
-#! TODO: Review whether this method is needed.
-    def is_pawn_promotion_move(self, from_square: int, to_square: int) -> bool: 
-        piece = self.board.piece_at(from_square)
-
-        if piece is None or piece.piece_type != chess.PAWN:
-            return False
-
-        return is_promotion_rank(to_square, piece.color == chess.WHITE)
 
 
 
