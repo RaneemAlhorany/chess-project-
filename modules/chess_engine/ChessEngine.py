@@ -4,6 +4,24 @@ from typing import Optional, List
 
 from modules.shared.enums.player_color import PlayerColor
 
+from modules.shared.enums.game_end_reason import GameEndReason
+
+from modules.models.board_state import BoardState
+
+
+#% ==================================================
+#! Module Constants
+#% ==================================================
+
+_TERMINATION_TO_GAME_END_REASON = {
+    chess.Termination.CHECKMATE: GameEndReason.CHECKMATE,
+    chess.Termination.STALEMATE: GameEndReason.STALEMATE,
+    chess.Termination.INSUFFICIENT_MATERIAL: GameEndReason.INSUFFICIENT_MATERIAL,
+    chess.Termination.FIFTY_MOVES: GameEndReason.FIFTY_MOVE_RULE,
+    chess.Termination.SEVENTYFIVE_MOVES: GameEndReason.FIFTY_MOVE_RULE,
+    chess.Termination.THREEFOLD_REPETITION: GameEndReason.THREEFOLD_REPETITION,
+    chess.Termination.FIVEFOLD_REPETITION: GameEndReason.THREEFOLD_REPETITION,
+}
 
 
 class ChessEngine:
@@ -21,12 +39,10 @@ class ChessEngine:
 
     def __init__(self):
         self.board = chess.Board()
+        #! Stores the move history in SAN notation.
+        #! python-chess preserves only chess.Move objects
+        #! inside board.move_stack, not their SAN strings.
         self._san_history: List[str] = []
-        """
-        Stores the move history in SAN notation.
-        python-chess preserves only chess.Move objects
-        inside board.move_stack, not their SAN strings.
-        """
 
 #% ==================================================
 #! Game Management
@@ -46,6 +62,7 @@ class ChessEngine:
     def get_legal_moves(self) -> List[chess.Move]:
         """
         Return all legal moves for the current board position.
+
         Returns:
             A list of all legal chess moves.
         """
@@ -116,8 +133,10 @@ class ChessEngine:
     def get_piece_symbol_at(self, square: int) -> str:
         """
         Return the symbol of the piece located on the given square.
+
         Args:
             square: The board square to inspect.
+
         Returns:
             The piece symbol if one exists; otherwise an empty string.
         """
@@ -128,8 +147,10 @@ class ChessEngine:
     def get_piece_type_at(self, square: int) -> Optional[int]:
         """
         Return the type of the piece located on the given square.
+
         Args:
             square: The board square to inspect.
+
         Returns:
             The piece type if one exists; otherwise None.
         """
@@ -140,8 +161,10 @@ class ChessEngine:
     def get_piece_color_at(self, square: int) -> Optional[PlayerColor]:
         """
         Return the color of the piece located on the given square.
+
         Args:
             square: The board square to inspect.
+
         Returns:
             The piece color if one exists; otherwise None.
         """
@@ -160,9 +183,10 @@ class ChessEngine:
     def get_piece_map(self) -> dict[int, chess.Piece]:
         """
         Return a mapping of all occupied squares to their chess pieces.
+
         Returns:
-            A dictionary where the key is the square index and
-            the value is the corresponding chess piece.
+            A dictionary where each key is a square index and
+            each value is the corresponding chess piece.
         """
         return dict(self.board.piece_map())
 
@@ -174,6 +198,7 @@ class ChessEngine:
     def is_check(self) -> bool:
         """
         Check whether the current player's king is in check.
+
         Returns:
             True if the current player is in check; otherwise False.
         """
@@ -268,6 +293,37 @@ class ChessEngine:
         """
         return self.board.result()
 
+
+    def is_pawn_promotion_move(self, from_square: int,to_square: int,) -> bool:
+        """
+        Check whether a move would result in a pawn promotion.
+
+        Args:
+            from_square: The source square.
+            to_square: The destination square.
+
+        Returns:
+            True if the move reaches the promotion rank;
+            otherwise False.
+        """
+        piece = self.board.piece_at(from_square)
+        if piece is None or piece.piece_type != chess.PAWN:
+            return False
+        promotion_rank = 7 if piece.color == chess.WHITE else 0
+        return chess.square_rank(to_square) == promotion_rank
+
+
+
+    def outcome_reason(self) -> Optional[GameEndReason]:
+
+        outcome = self.board.outcome()
+        if outcome is None:
+            return None
+        return _TERMINATION_TO_GAME_END_REASON.get(
+            outcome.termination,
+            GameEndReason.UNKNOWN,
+        )
+
 #% ==================================================
 #! Board State
 #% ==================================================
@@ -306,6 +362,23 @@ class ChessEngine:
         """
         self.board.set_fen(fen)
         self._san_history.clear()
+
+        
+    def get_board_state(self) -> BoardState:
+        """
+        Return the current board state.
+
+        Returns:
+            A BoardState object representing the current board position.
+        """
+        return BoardState(
+            fen=self.get_fen(),
+            turn=self.get_turn_color(),
+            move_count=len(self.board.move_stack),
+            fullmove_number=self.board.fullmove_number,
+        )
+
+
 
 
 #% ==================================================
@@ -519,90 +592,7 @@ class ChessEngine:
         return None
 
 
-# ///////////////////////////////////////////////////
 
-
-
-#! TODO: Review whether this method is needed.
-    def is_pawn_promotion_move(self, from_square: int, to_square: int) -> bool: 
-        piece = self.board.piece_at(from_square)
-
-        if piece is None or piece.piece_type != chess.PAWN:
-            return False
-
-        return is_promotion_rank(to_square, piece.color == chess.WHITE)
-
-#! TODO:
-#! Review whether ChessEngine should expose python-chess Outcome objects
-#! or convert them into project-specific data structures.
-
-    def outcome(self) -> Optional[chess.Outcome]:
-        return self.board.outcome()
-
-#! TODO:
-#! Replace string literals with GameEndReason enum.
-#! Review after creating GameEndReason.
-    def outcome_reason(self) -> Optional[str]:
-        outcome = self.board.outcome()
-        if outcome is None:
-            return None
-        if outcome.termination == chess.Termination.CHECKMATE:
-            return "checkmate"
-        if outcome.termination == chess.Termination.STALEMATE:
-            return "stalemate"
-        if outcome.termination == chess.Termination.INSUFFICIENT_MATERIAL:
-            return "insufficient_material"
-        if outcome.termination == chess.Termination.FIFTY_MOVES:
-            return "fifty_move_rule"
-        if outcome.termination == chess.Termination.THREEFOLD_REPETITION:
-            return "threefold_repetition"
-        if outcome.termination == chess.Termination.SEVENTYFIVE_MOVES:
-            return "fifty_move_rule"
-        if outcome.termination == chess.Termination.FIVEFOLD_REPETITION:
-            return "threefold_repetition"
-        if outcome.termination == chess.Termination.VARIANT_WIN:
-            return "variant_win"
-        if outcome.termination == chess.Termination.VARIANT_LOSS:
-            return "variant_loss"
-        return "unknown"
-
-
-#! TODO:
-#! Review whether has_king() is actually needed.
-#! ChessEngine always operates on valid chess positions,
-#! where both kings are guaranteed to exist.
-    def has_king(self, color: bool) -> bool:
-        return any(
-            piece and piece.piece_type == chess.KING and piece.color == color
-            for piece in self.board.piece_map().values()
-        )
-
-
-#! TODO:
-#! Review whether get_board_state() should return a project-specific
-#! BoardState dataclass instead of a generic dictionary.
-#! This will improve type safety, readability, and API consistency.
-#! Also review whether move_count should depend on
-#! _san_history or board.move_stack.
-
-
-    def get_board_state(self) -> dict:
-        state = {
-            "fen": self.get_fen(),
-            "turn": self.get_turn_color(),
-            "is_check": self.is_check(),
-            "is_checkmate": self.is_checkmate(),
-            "is_stalemate": self.is_stalemate(),
-            "is_game_over": self.is_game_over(),
-            "is_insufficient_material": self.is_insufficient_material(),
-            "is_fifty_moves": self.is_fifty_moves(),
-            "is_repetition": self.is_repetition(),
-            "move_count": len(self._san_history),
-            "fullmove_number": self.board.fullmove_number,
-        }
-        return state
-
-
-
+     
 
 

@@ -33,7 +33,8 @@ Values:
 - FRIEND
 - BOT
 
----
+--------------------------
+--------------------------
 
 ### GameStatus
 
@@ -174,6 +175,9 @@ This makes it one of the lowest dependency classes in the project architecture.
 - Data-Oriented Design
 - Separation of Concerns
 
+------------------------
+-------------------------
+
 
 # Game Module
 
@@ -278,3 +282,333 @@ This makes it one of the lowest dependency classes in the project architecture a
 As the project grows, additional classes such as `GameManager` will be added to this module.
 
 `GameState` will remain responsible only for storing the current match data, while all game management logic will be implemented in dedicated classes.
+
+
+---------------------------
+-----------------------------
+
+
+# ChessEngine
+
+## Overview
+
+`ChessEngine` is the core chess logic module of the project.
+
+It acts as a wrapper around the **python-chess** library and is the only component in the project that communicates directly with it.
+
+The engine is responsible for managing the chessboard, validating moves, executing moves, and providing board information.
+
+It does **not** contain any UI logic, game flow management, session handling, timers, or AI decision-making.
+
+---
+
+# Responsibilities
+
+The ChessEngine is responsible for:
+
+- Initializing and resetting the chess board.
+- Validating legal moves.
+- Executing moves.
+- Undoing moves.
+- Tracking move history (SAN).
+- Providing board information.
+- Detecting special chess rules.
+- Detecting game-ending conditions.
+- Providing board snapshots.
+
+---
+
+# Not Responsible For
+
+The ChessEngine intentionally does **not** handle:
+
+- User Interface
+- Streamlit components
+- Game lifecycle
+- Player management
+- Session State
+- AI logic
+- Timers
+- Move history presentation
+- Captured pieces
+
+Those responsibilities belong to other modules.
+
+---
+
+# Architecture
+
+```
+                UI
+                 │
+                 ▼
+          GameManager
+                 │
+                 ▼
+           ChessEngine
+                 │
+                 ▼
+          python-chess
+```
+
+Only `ChessEngine` communicates with the external chess library.
+
+This keeps the rest of the project independent from third-party APIs.
+
+---
+
+# Public API
+
+## Game Management
+
+- `reset()`
+
+---
+
+## Move Validation
+
+- `get_legal_moves()`
+- `get_legal_targets()`
+- `is_legal_move()`
+
+---
+
+## Move Execution
+
+- `make_move()`
+
+---
+
+## Board Queries
+
+- `get_piece_at()`
+- `get_piece_symbol_at()`
+- `get_piece_type_at()`
+- `get_piece_color_at()`
+- `get_piece_map()`
+
+---
+
+## Game Status
+
+- `is_check()`
+- `is_checkmate()`
+- `is_stalemate()`
+- `is_insufficient_material()`
+- `is_game_over()`
+- `can_claim_draw()`
+- `is_fifty_moves()`
+- `is_repetition()`
+- `result()`
+- `outcome_reason()`
+- `is_pawn_promotion_move()`
+
+---
+
+## Board State
+
+- `get_turn_color()`
+- `get_fen()`
+- `set_fen()`
+- `get_board_state()`
+
+---
+
+## Move History
+
+- `get_last_san()`
+- `get_san_history()`
+
+---
+
+## Move Utilities
+
+- `get_san()`
+- `push_san()`
+- `undo_last_move()`
+
+---
+
+## Special Moves
+
+- `is_castling_move()`
+- `is_en_passant_move()`
+
+---
+
+## UCI Utilities
+
+- `parse_uci()`
+- `uci_to_from_square()`
+- `uci_to_to_square()`
+- `uci_get_promotion()`
+
+---
+
+## Board Utilities
+
+- `get_last_move()`
+
+---
+
+# Internal Design
+
+Internally the engine stores:
+
+- A `python-chess Board`
+- SAN move history
+- Board state information
+
+Move execution always follows this sequence:
+
+```
+Validate Move
+      │
+      ▼
+Generate SAN
+      │
+      ▼
+Push Move
+      │
+      ▼
+Update SAN History
+```
+
+---
+
+# Design Decisions
+
+## Wrapper Pattern
+
+The project never imports `python-chess` outside this module.
+
+This isolates external dependencies and makes future replacements significantly easier.
+
+---
+
+## BoardState Model
+
+Instead of returning dictionaries, the engine returns a dedicated `BoardState` model.
+
+Advantages:
+
+- Better type safety
+- Easier maintenance
+- Cleaner APIs
+- IDE auto-completion
+- Clear project architecture
+
+---
+
+## GameEndReason Enum
+
+The engine converts `python-chess` termination values into project-specific enums.
+
+Advantages:
+
+- Removes dependency on library enums.
+- Keeps the rest of the project independent.
+- Makes future engine replacement easier.
+
+---
+
+## SAN History
+
+The engine stores SAN notation separately because `python-chess` stores only `Move` objects inside `move_stack`.
+
+---
+
+# Data Flow
+
+```
+UI
+
+↓
+
+GameManager
+
+↓
+
+ChessEngine
+
+↓
+
+python-chess
+
+↓
+
+Board
+```
+
+---
+
+# Dependencies
+
+External:
+
+- python-chess
+
+Internal:
+
+- PlayerColor
+- GameEndReason
+- BoardState
+
+---
+
+# Usage Example
+
+```python
+engine = ChessEngine()
+
+engine.make_move(
+    chess.E2,
+    chess.E4,
+)
+
+print(engine.get_turn_color())
+
+print(engine.get_board_state())
+
+print(engine.is_check())
+```
+
+---
+
+# Future Extensions
+
+The current design allows adding:
+
+- PGN Export
+- PGN Import
+- Board Evaluation
+- Move Analysis
+- Opening Detection
+- Move Suggestions
+- Chess960 Support
+
+without changing the public API.
+
+---
+
+# Notes
+
+The ChessEngine is designed according to the following principles:
+
+- Single Responsibility Principle (SRP)
+- Separation of Concerns
+- Wrapper Pattern
+- Small Public API
+- High Cohesion
+- Low Coupling
+
+The engine should remain focused exclusively on chess logic.
+
+All higher-level application logic should be implemented in `GameManager`.
+
+
+
+-----------------------
+----------------------
+
+
