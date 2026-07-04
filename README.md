@@ -611,4 +611,379 @@ All higher-level application logic should be implemented in `GameManager`.
 -----------------------
 ----------------------
 
+# Stockfish Engine Module
+
+## Overview
+
+The `StockfishEngine` module is responsible for all communication with the external **Stockfish** chess engine.
+
+It acts as a wrapper around the `stockfish` Python package, providing a clean and project-independent API for interacting with the chess engine.
+
+The rest of the project never communicates with the Stockfish library directly.
+
+---
+
+# Responsibilities
+
+The `StockfishEngine` is responsible for:
+
+- Initializing the Stockfish engine.
+- Managing the engine availability.
+- Managing the bot difficulty level.
+- Updating the current board position.
+- Generating the best move.
+- Evaluating chess positions.
+- Resetting the engine state.
+
+---
+
+# Out of Scope
+
+This module **does NOT** handle:
+
+- Chess rules.
+- Move validation.
+- Game lifecycle.
+- Player turns.
+- Game history.
+- Timers.
+- UI logic.
+- Session management.
+
+Those responsibilities belong to other modules.
+
+---
+
+# Architecture
+
+```
+                GameManager
+                     │
+                     ▼
+             StockfishEngine
+                     │
+                     ▼
+              Stockfish Library
+                     │
+                     ▼
+             Stockfish Executable
+```
+
+Only `StockfishEngine` communicates with the external Stockfish engine.
+
+---
+
+# Project Position
+
+```
+UI
+ │
+ ▼
+GameManager
+ ├───────────────┐
+ │               │
+ ▼               ▼
+ChessEngine   StockfishEngine
+```
+
+The GameManager requests moves from the bot.
+
+The bot never communicates directly with the UI.
+
+---
+
+# Dependencies
+
+- stockfish
+- logging
+- typing
+
+Project modules:
+
+- Difficulty
+- stockfish_constants
+
+---
+
+# Public API
+
+## Engine Configuration
+
+### set_difficulty()
+
+Updates the bot difficulty and applies the corresponding search depth to the engine.
+
+---
+
+## Position Management
+
+### set_fen()
+
+Updates the current board position inside Stockfish using a FEN string.
+
+---
+
+## Move Generation
+
+### get_best_move()
+
+Returns the strongest move for the given board position.
+
+Returned value:
+
+- UCI move string
+- or None if unavailable.
+
+Example:
+
+```
+e2e4
+```
+
+---
+
+### get_evaluation()
+
+Returns the engine evaluation.
+
+Typical result:
+
+```python
+{
+    "type": "cp",
+    "value": 34
+}
+```
+
+or
+
+```python
+{
+    "type": "mate",
+    "value": -2
+}
+```
+
+---
+
+## Engine Status
+
+### is_available()
+
+Returns whether the engine initialized successfully.
+
+---
+
+### get_difficulty()
+
+Returns the current difficulty level.
+
+---
+
+### get_depth()
+
+Returns the search depth associated with the current difficulty.
+
+---
+
+## Engine Management
+
+### reset()
+
+Restores the engine to the standard chess starting position.
+
+---
+
+# Internal API
+
+## _init_engine()
+
+Initializes the Stockfish engine.
+
+This method is private and should never be called outside the class.
+
+---
+
+# Difficulty Mapping
+
+Difficulty levels are mapped to Stockfish search depth using:
+
+```
+DIFFICULTY_TO_DEPTH
+```
+
+Example:
+
+| Difficulty | Depth |
+|------------|------:|
+| Easy | 5 |
+| Medium | 10 |
+| Hard | 18 |
+
+The mapping is defined in:
+
+```
+modules/shared/constants/stockfish_constants.py
+```
+
+---
+
+# Error Handling
+
+Every engine interaction is wrapped in:
+
+```
+try / except
+```
+
+Unexpected failures never crash the application.
+
+Instead:
+
+- the error is logged,
+- the engine remains usable,
+- methods safely return `None` or exit.
+
+---
+
+# Design Decisions
+
+## Wrapper Pattern
+
+The project never exposes the Stockfish library outside this module.
+
+Advantages:
+
+- loose coupling
+- easier testing
+- easier replacement
+- cleaner architecture
+
+---
+
+## Single Responsibility Principle
+
+The class only manages communication with Stockfish.
+
+It never manages:
+
+- game state
+- chess rules
+- UI
+- timers
+- sessions
+
+---
+
+## Encapsulation
+
+The Stockfish instance is private.
+
+External modules interact only through public methods.
+
+---
+
+## Guard Clauses
+
+Methods return early when the engine is unavailable.
+
+Example:
+
+```python
+if not self._available or self._engine is None:
+    return
+```
+
+This keeps the code simple and avoids unnecessary nesting.
+
+---
+
+## DRY Principle
+
+Board updates are centralized in:
+
+```
+set_fen()
+```
+
+Other methods reuse it instead of duplicating logic.
+
+---
+
+# Typical Flow
+
+```
+GameManager
+
+      │
+
+      ▼
+
+get_fen()
+
+      │
+
+      ▼
+
+StockfishEngine.set_fen()
+
+      │
+
+      ▼
+
+StockfishEngine.get_best_move()
+
+      │
+
+      ▼
+
+UCI Move
+
+      │
+
+      ▼
+
+ChessEngine.make_move()
+```
+
+---
+
+# Notes
+
+- This module assumes all incoming FEN strings are valid.
+- FEN validation is the responsibility of `ChessEngine`.
+- The engine does not store game history.
+- The engine does not own the board state.
+- The engine only evaluates positions and generates moves.
+
+---
+
+# Future Extensions
+
+Possible future improvements include:
+
+- MultiPV support.
+- Move ordering.
+- Engine hash configuration.
+- Thread configuration.
+- Skill level support.
+- Engine benchmarking.
+- Move analysis mode.
+
+The current architecture allows these features to be added without modifying the rest of the project.
+
+---
+
+# Summary
+
+The `StockfishEngine` module provides a clean abstraction over the Stockfish engine.
+
+It isolates all engine-specific functionality behind a stable API, allowing the rest of the project to remain independent from the underlying chess engine implementation.
+
+This design improves maintainability, readability, extensibility, and long-term project scalability.
+
+
+-----------------------------
+----------------------------
+
 

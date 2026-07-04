@@ -1,6 +1,6 @@
 import logging
 
-from typing import Optional
+from typing import Optional, Any
 
 from stockfish import Stockfish as StockfishLib
 
@@ -103,33 +103,33 @@ class StockfishEngine:
 #! Engine Configuration
 #% ==================================================
 
-def set_difficulty(self, difficulty: Difficulty) -> None:
-    """
-    Set the bot difficulty level.
+    def set_difficulty(self, difficulty: Difficulty) -> None:
+        """
+        Set the bot difficulty level.
 
-    Updates the current difficulty setting and applies the
-    corresponding search depth to the Stockfish engine if
-    it has been successfully initialized.
+        Updates the current difficulty setting and applies the
+        corresponding search depth to the Stockfish engine if
+        it has been successfully initialized.
 
-    Args:
-        difficulty: The desired difficulty level.
-    """
+        Args:
+            difficulty: The desired difficulty level.
+        """
 
-    self._difficulty = difficulty
+        self._difficulty = difficulty
 
-    if not self._available or self._engine is None:
-        return
+        if not self._available or self._engine is None:
+            return
 
-    try:
-        self._engine.set_depth(
-            DIFFICULTY_TO_DEPTH[self._difficulty]
-        )
+        try:
+            self._engine.set_depth(
+                DIFFICULTY_TO_DEPTH[self._difficulty]
+            )
 
-    except Exception as error:
-        logger.warning(
-            "Failed to update Stockfish difficulty: %s",
-            error,
-        )
+        except Exception as error:
+            logger.warning(
+                "Failed to update Stockfish difficulty: %s",
+                error,
+            )
 
 
 #% ==================================================
@@ -159,76 +159,138 @@ def set_difficulty(self, difficulty: Difficulty) -> None:
                 error,
             )
 
-
-
-            
-#% ==================================================
-#! Difficulty Management
-#% ==================================================
-
-    ...
-
-#% ==================================================
-#! Position Management
-#% ==================================================
-
-    ...
-
 #% ==================================================
 #! Move Generation
 #% ==================================================
 
-    ...
+    def get_best_move(self, fen: str) -> Optional[str]:
+        """
+        Return the best move for the given board position.
 
-#% ==================================================
-#! Evaluation
-#% ==================================================
+        Updates the Stockfish engine with the supplied FEN position
+        and calculates the strongest move based on the current
+        difficulty level.
 
-    ...
+        Args:
+            fen: The board position in FEN notation.
+
+        Returns:
+            The best move in UCI notation if available;
+            otherwise None.
+        """
+
+        if not self._available or self._engine is None:
+            return None
+
+        try:
+            self.set_fen(fen)
+            return self._engine.get_best_move()
+
+        except Exception as error:
+            logger.warning(
+                "Failed to generate best move: %s",
+                error,
+            )
+
+            return None
+
+
+    def get_evaluation( self, fen: str, ) -> Optional[dict[str, Any]]:
+        """
+        Evaluate the given board position.
+
+        Updates the Stockfish engine with the supplied FEN position
+        and returns the engine evaluation.
+
+        Args:
+            fen: The board position in FEN notation.
+
+        Returns:
+            A dictionary containing the evaluation returned by
+            Stockfish, or None if the evaluation could not be
+            performed.
+        """
+
+        if not self._available or self._engine is None:
+            return None
+
+        try:
+            self.set_fen(fen)
+            return self._engine.get_evaluation()
+
+        except Exception as error:
+            logger.warning(
+                "Failed to evaluate position: %s",
+                error,
+            )
+
+            return None
+
+
 
 #% ==================================================
 #! Engine Status
 #% ==================================================
 
-    ...
-
-#% ==================================================
-#! Engine Utilities
-#% ==================================================
-
-    ...
-
-
-
-
-
-# 4
-    def get_best_move(self, fen: str) -> Optional[str]:
-        if not self._available or not self._engine:
-            return None
-        try:
-            self._engine.set_fen_position(fen)
-            return self._engine.get_best_move()
-        except Exception as e:
-            logger.warning(f"Failed to get best move: {e}")
-            return None
-# 3
-    def get_evaluation(self, fen: str) -> Optional[dict]:
-        if not self._available or not self._engine:
-            return None
-        try:
-            self._engine.set_fen_position(fen)
-            return self._engine.get_evaluation()
-        except Exception as e:
-            logger.warning(f"Failed to get evaluation: {e}")
-            return None
-# 2
     def is_available(self) -> bool:
+        """
+        Check whether the Stockfish engine is available.
+
+        Returns:
+            True if the engine was successfully initialized;
+            otherwise False.
+        """
         return self._available
-# 1
+
+
+    def get_difficulty(self) -> Difficulty:
+        """
+        Return the current bot difficulty level.
+
+        Returns:
+            The currently configured difficulty.
+        """
+        return self._difficulty
+
+
+    def get_depth(self) -> int:
+        """
+        Return the current Stockfish search depth.
+
+        Returns:
+            The search depth associated with the
+            current difficulty level.
+        """
+
+        return DIFFICULTY_TO_DEPTH[self._difficulty]
+
+
+
+#% ==================================================
+#! Engine Management
+#% ==================================================
+
     def reset(self) -> None:
-        if self._available and self._engine:
-            try:
-                self._engine.set_position()
-            except Exception as e:
-                logger.warning(f"Failed to reset: {e}")
+        """
+        Reset the Stockfish engine to the initial position.
+
+        Clears the current board position inside the engine and
+        restores the standard chess starting position.
+
+        If the engine is unavailable, this method does nothing.
+        """
+
+        if not self._available or self._engine is None:
+            return
+
+        try:
+            self._engine.set_position()
+
+        except Exception as error:
+            logger.warning(
+                "Failed to reset Stockfish engine: %s",
+                error,
+            )       
+
+
+
