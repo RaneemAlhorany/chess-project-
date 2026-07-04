@@ -987,3 +987,196 @@ This design improves maintainability, readability, extensibility, and long-term 
 ----------------------------
 
 
+#  Session Manager Module
+
+##  Overview
+
+The `SessionManager` module provides a clean and centralized wrapper around Streamlit's `st.session_state`.
+
+It decouples application logic from Streamlit, ensuring that the rest of the system does not directly depend on UI framework internals.
+
+This improves:
+- Maintainability
+- Testability
+- Code clarity
+- Architecture separation
+- Scalability
+
+---
+
+## 🎯 Responsibility
+
+The SessionManager is responsible for **session state management only**, including:
+
+- Storing values in session state
+- Retrieving stored values safely
+- Checking whether keys exist
+- Removing specific session entries
+- Clearing the entire session state
+
+---
+
+## ❌ What this module does NOT do
+
+- Does NOT contain any game logic
+- Does NOT interact with ChessEngine
+- Does NOT handle UI rendering
+- Does NOT manage business rules
+
+---
+
+##  Architecture Role
+
+The SessionManager acts as the lowest persistence layer in the system.
+
+
+UI (Streamlit)
+↓
+GameManager
+↓
+SessionManager
+↓
+st.session_state
+
+
+---
+
+##  Data Flow
+
+
+GameManager updates state
+↓
+SessionManager stores state
+↓
+Streamlit reruns script
+↓
+UI reflects updated game status
+
+
+---
+
+##  Why this module exists
+
+Without SessionManager:
+- Streamlit dependency would be scattered across the codebase ❌
+- Session state becomes hard to manage ❌
+- Tight coupling between UI and logic ❌
+
+With SessionManager:
+- Centralized state management ✔
+- Clean separation of concerns ✔
+- Easier debugging and testing ✔
+- More scalable architecture ✔
+
+---
+
+##  Design Principles
+
+- Single Responsibility Principle (SRP)
+- Separation of Concerns (SoC)
+- UI framework isolation (Streamlit abstraction)
+- Clean Architecture principles
+
+---
+
+## ✅ Summary
+
+SessionManager is a lightweight abstraction over Streamlit session state that ensures a  clean, scalable, and maintainable architecture for the Chess Project.
+ 
+-----------------------------
+-----------------------------
+
+# ♟️ Game Manager Module
+
+##  Overview
+
+The `GameManager` is the central controller of the chess application.
+
+It acts as the **orchestration layer** between:
+
+- ChessEngine (game rules & logic)
+- GameState (data model)
+- SessionManager (state persistence)
+- UI layer (Streamlit)
+
+It does NOT implement chess rules itself, but delegates all rule logic to the ChessEngine.
+
+---
+
+##  Responsibility
+
+The GameManager is responsible for:
+
+- Managing the lifecycle of a chess game
+- Coordinating moves between UI and ChessEngine
+- Maintaining and updating GameState
+- Persisting state using SessionManager
+- Synchronizing game status (running, finished, winner, etc.)
+
+---
+
+## ❌ What this module does NOT do
+
+- Does NOT implement chess rules
+- Does NOT contain UI logic (Streamlit)
+- Does NOT directly manipulate session_state
+- Does NOT define game data structures
+- Does NOT replace ChessEngine responsibilities
+
+---
+
+##  Architecture Role
+
+The GameManager acts as the **central controller** of the system:
+
+
+UI (Streamlit)
+↓
+GameManager
+↓
+ChessEngine
+↓
+GameState
+↓
+SessionManager
+
+
+---
+
+## 🔄 Game Flow
+
+The following diagram describes how a move flows through the system:
+
+
+Player Action
+↓
+GameManager
+↓
+ChessEngine
+↓
+GameState Update
+↓
+SessionManager Save
+↓
+UI Refresh
+
+
+This flow guarantees:
+- Centralized control of game logic
+- Consistent state updates
+- Persistent session storage
+- Clean separation between UI and backend logic
+
+---
+
+#  Summary
+
+This architecture ensures a clean separation of concerns:
+
+- SessionManager → handles persistence
+- GameManager → controls game flow
+- ChessEngine → handles chess rules
+- GameState → stores game data
+- UI (Streamlit) → presentation layer
+
+The result is a scalable, maintainable, and modular chess application architecture.
