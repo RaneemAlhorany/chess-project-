@@ -12,12 +12,13 @@ class GameState:
     """
     Represents the current state of a chess game.
 
-    This class stores all game-related data during a match.
-    It does not contain game logic.
+    This class stores general match information.
+    Chess-specific information such as the board state,
+    current turn, move history, and game rules are managed
+    by the ChessEngine.
     """
 
     game_mode: GameMode
     status: GameStatus
-    current_turn_color: PlayerColor
     difficulty: Optional[Difficulty] = None
     winner: Optional[PlayerColor] = None
