@@ -132,6 +132,33 @@ def set_difficulty(self, difficulty: Difficulty) -> None:
         )
 
 
+#% ==================================================
+#! Position Management
+#% ==================================================
+
+    def set_fen(self, fen: str) -> None:
+        """
+        Set the current board position for the Stockfish engine.
+
+        Updates the engine with the provided board position
+        represented as a Forsyth-Edwards Notation (FEN) string.
+
+        Args:
+            fen: The board position in FEN notation.
+        """
+
+        if not self._available or self._engine is None:
+            return
+
+        try:
+            self._engine.set_fen_position(fen)
+
+        except Exception as error:
+            logger.warning(
+                "Failed to update Stockfish position: %s",
+                error,
+            )
+
 
 
             
@@ -175,15 +202,6 @@ def set_difficulty(self, difficulty: Difficulty) -> None:
 
 
 
-
-
-# 5
-    def set_fen(self, fen: str) -> None:
-        if self._available and self._engine:
-            try:
-                self._engine.set_fen_position(fen)
-            except Exception as e:
-                logger.warning(f"Failed to set FEN: {e}")
 # 4
     def get_best_move(self, fen: str) -> Optional[str]:
         if not self._available or not self._engine:
