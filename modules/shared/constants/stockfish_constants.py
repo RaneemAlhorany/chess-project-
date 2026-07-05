@@ -22,7 +22,7 @@ STOCKFISH_PATH = (
 #% ==================================================
 
 DIFFICULTY_TO_DEPTH = {
-    Difficulty.EASY: 5,
+    Difficulty.EASY: 3,
     Difficulty.MEDIUM: 10,
     Difficulty.HARD: 18,
 }
