@@ -403,26 +403,58 @@ class GameManager:
             self._game_state,
         )
 
-#! TODO:
-#~ Revisit this method after completing SessionManager.
-#~ Verify that loading a session fully restores the chess board,
-#~ GameState, and all runtime information.
+
+    def _restore_game_runtime(self) -> None:
+        """
+        Restore the runtime components of the current game.
+
+        Rebuilds the ChessEngine and other runtime objects
+        from the active GameState, ensuring that the loaded
+        game is fully synchronized with its persisted state.
+
+        If no active game exists, this method does nothing.
+        """
+
+        if self._game_state is None:
+            return
+
+        self._engine.set_fen(
+            self._game_state.board_state.fen,
+        )
+
+        self._bot.reset()
+
+        if (
+            self._game_state.game_mode == GameMode.BOT
+            and self._game_state.difficulty is not None
+        ):
+            self._bot.set_difficulty(
+                self._game_state.difficulty,
+            )
+
     def load_game(self) -> Optional[GameState]:
         """
-        Load the most recently saved game session.
+        Load the most recently saved game.
 
-        Retrieves the stored GameState from the SessionManager,
-        updates the active game state, and returns the loaded
-        game if one exists.
+        Retrieves the stored GameState from the session,
+        restores the runtime components of the game,
+        and makes the loaded game the active one.
 
         Returns:
-            The restored GameState instance if a saved game
-            exists; otherwise None.
+            The restored GameState if a saved game exists;
+            otherwise None.
         """
 
-        self._game_state = self._session.get(
+        game_state = self._session.get(
             GAME_STATE_SESSION_KEY,
         )
+
+        if game_state is None:
+            return None
+
+        self._game_state = game_state
+
+        self._restore_game_runtime()
 
         return self._game_state
 
@@ -607,18 +639,3 @@ class GameManager:
 
         return self._game_state
 
-#! TODO:
-## Review whether exposing the internal ChessEngine is necessary.
-## If all required operations are available through GameManager,
-## this getter should be removed to preserve encapsulation.
-    def get_engine(self) -> ChessEngine:
-        """
-        Return the internal chess engine.
-
-        Returns:
-            The ChessEngine instance currently managed by
-            the GameManager.
-        """
-
-        return self._engine
-        

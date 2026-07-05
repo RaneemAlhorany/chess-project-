@@ -1,7 +1,10 @@
-from typing import Any, Optional
+from typing import Any
 
 import streamlit as st
 
+#! This class intentionally contains only thin wrappers
+#! around Streamlit session APIs to isolate the rest
+#! of the application from framework-specific code.
 
 class SessionManager:
     """
@@ -13,6 +16,9 @@ class SessionManager:
     session management implementation.
     """
 
+#% ==================================================
+#! Session Storage
+#% ==================================================
 
     def set(self, key: str, value: Any) -> None:
         """
