@@ -1,0 +1,13 @@
+# =====================================================================
+# APP-WIDE THEME
+# STATUS: PERMANENT + SHARED. Themes the WHOLE app (every screen).
+# This is Streamlit CONFIGURATION, not CSS — allowed under "Python/Streamlit only".
+# Change a value here and the entire app restyles. Confirm colors with Lobana.
+# =====================================================================
+[theme]
+base = "dark"
+primaryColor = "#c9a24b"             # antique gold — buttons, highlights
+backgroundColor = "#241a10"          # dark walnut — page background
+secondaryBackgroundColor = "#3a2a19" # panels / cards
+textColor = "#ecdfc8"                # parchment — main text
+font = "serif"
