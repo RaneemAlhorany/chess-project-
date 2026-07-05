@@ -576,18 +576,18 @@ class GameManager:
         return self._engine.is_stalemate()
 
 
-def is_draw(self) -> bool:
-    """
-    Check whether the current game ended in a draw.
+    def is_draw(self) -> bool:
+        """
+        Check whether the current game ended in a draw.
 
-    Delegates the request to the ChessEngine.
+        Delegates the request to the ChessEngine.
 
-    Returns:
-        True if the game ended in a draw;
-        otherwise False.
-    """
+        Returns:
+            True if the game ended in a draw;
+            otherwise False.
+        """
 
-    return self._engine.is_draw()
+        return self._engine.is_draw()
 
 #% ==================================================
 #! Getters
@@ -608,10 +608,9 @@ def is_draw(self) -> bool:
         return self._game_state
 
 #! TODO:
-# Review whether exposing the internal ChessEngine is necessary.
-# If all required operations are available through GameManager,
-# this getter should be removed to preserve encapsulation.
-# 1
+## Review whether exposing the internal ChessEngine is necessary.
+## If all required operations are available through GameManager,
+## this getter should be removed to preserve encapsulation.
     def get_engine(self) -> ChessEngine:
         """
         Return the internal chess engine.
