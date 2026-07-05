@@ -6,6 +6,7 @@ from modules.shared.enums.game_mode import GameMode
 from modules.shared.enums.game_status import GameStatus
 from modules.shared.enums.player_color import PlayerColor
 from modules.shared.enums.game_end_reason import GameEndReason
+from modules.models.board_state import BoardState
 
 
 
@@ -25,6 +26,8 @@ class GameState:
     status: GameStatus
 
     difficulty: Optional[Difficulty] = None
+
+    board_state: Optional[BoardState] = None
 
     winner: Optional[PlayerColor] = None
 

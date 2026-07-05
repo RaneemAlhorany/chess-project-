@@ -15,7 +15,7 @@ from modules.shared.enums.player_color import PlayerColor
 from modules.shared.enums.game_end_reason import GameEndReason
 
 # Project Engines
-from modules.stockfish.stockfish_engine import StockfishEngine
+from modules.bot.stockfish_engine import StockfishEngine
 
 # Project Models
 from modules.models.board_state import BoardState
@@ -100,6 +100,7 @@ class GameManager:
             game_mode=game_mode,
             status=GameStatus.RUNNING,
             difficulty=difficulty,
+            board_state=self._engine.get_board_state(),
         )
 
         self._sync_session()
@@ -143,6 +144,7 @@ class GameManager:
 
         self._game_state.status = GameStatus.FINISHED
         self._game_state.winner = winner
+        self._game_state.board_state = self._engine.get_board_state()
 
         self._sync_session()
 
@@ -369,10 +371,12 @@ class GameManager:
             self._game_state.status = GameStatus.RUNNING
             self._game_state.winner = None
             self._game_state.end_reason = None
+            self._game_state.board_state = self._engine.get_board_state()
             return
 
         self._game_state.status = GameStatus.FINISHED
         self._game_state.end_reason = self._engine.outcome_reason()
+        self._game_state.board_state = self._engine.get_board_state()
 
         result = self._engine.result()
 
@@ -417,6 +421,9 @@ class GameManager:
 
         if self._game_state is None:
             return
+
+        if self._game_state.board_state is None:
+            self._game_state.board_state = self._engine.get_board_state()
 
         self._engine.set_fen(
             self._game_state.board_state.fen,
@@ -518,6 +525,17 @@ class GameManager:
         """
 
         return self._engine.get_san_history()
+
+
+    def get_game_state(self) -> Optional[GameState]:
+        """
+        Return the currently active game state.
+
+        Returns:
+            The active GameState instance, or None if no game is running.
+        """
+
+        return self._game_state
 
 
     def get_result(self) -> str:

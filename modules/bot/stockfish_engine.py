@@ -1,7 +1,9 @@
 import logging
+import random
 
 from typing import Optional, Any
 
+import chess
 from stockfish import Stockfish as StockfishLib
 
 from modules.shared.enums.difficulty import Difficulty
@@ -76,6 +78,11 @@ class StockfishEngine:
         allowing the rest of the application to continue running
         safely without crashing.
         """
+
+        if not STOCKFISH_PATH.exists() or STOCKFISH_PATH.stat().st_size == 0:
+            self._engine = None
+            self._available = False
+            return
 
         try:
             self._engine = StockfishLib(
@@ -180,7 +187,7 @@ class StockfishEngine:
         """
 
         if not self._available or self._engine is None:
-            return None
+            return self._get_fallback_best_move(fen)
 
         try:
             self.set_fen(fen)
@@ -193,6 +200,16 @@ class StockfishEngine:
             )
 
             return None
+
+
+    def _get_fallback_best_move(self, fen: str) -> Optional[str]:
+        board = chess.Board(fen)
+        legal_moves = list(board.legal_moves)
+
+        if not legal_moves:
+            return None
+
+        return random.choice(legal_moves).uci()
 
 
     def get_evaluation( self, fen: str, ) -> Optional[dict[str, Any]]:
