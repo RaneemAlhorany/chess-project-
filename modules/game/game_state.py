@@ -5,6 +5,8 @@ from modules.shared.enums.difficulty import Difficulty
 from modules.shared.enums.game_mode import GameMode
 from modules.shared.enums.game_status import GameStatus
 from modules.shared.enums.player_color import PlayerColor
+from modules.shared.enums.game_end_reason import GameEndReason
+
 
 
 @dataclass
@@ -19,6 +21,11 @@ class GameState:
     """
 
     game_mode: GameMode
+
     status: GameStatus
+
     difficulty: Optional[Difficulty] = None
+
     winner: Optional[PlayerColor] = None
+
+    end_reason: Optional[GameEndReason] = None

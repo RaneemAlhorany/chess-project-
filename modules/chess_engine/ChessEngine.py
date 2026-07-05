@@ -324,6 +324,23 @@ class ChessEngine:
             GameEndReason.UNKNOWN,
         )
 
+    def is_draw(self) -> bool:
+        """
+        Check whether the current game ended in a draw.
+
+        Returns:
+            True if the game has ended with any type of draw;
+            otherwise False.
+        """
+
+        outcome = self.board.outcome()
+
+        return (
+            outcome is not None
+            and outcome.winner is None
+        )
+
+
 #% ==================================================
 #! Board State
 #% ==================================================
@@ -378,6 +395,20 @@ class ChessEngine:
             fullmove_number=self.board.fullmove_number,
         )
 
+
+    def get_board(self) -> chess.Board:
+        """
+        Return the underlying chess board instance.
+
+        Provides direct read-only access to the internal
+        python-chess Board object for components that
+        require advanced board operations.
+
+        Returns:
+            The active chess.Board instance.
+        """
+
+        return self.board
 
 
 
@@ -564,6 +595,15 @@ class ChessEngine:
         return self.board.peek() if self.board.move_stack else None
 
 
+    def get_move_count(self) -> int:
+        """
+        Return the total number of executed moves.
+
+        Returns:
+            The number of moves currently stored
+            in the move history.
+        """
+        return len(self.board.move_stack)
 
 
 #% ==================================================
