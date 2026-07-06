@@ -1,15 +1,7 @@
 import os
 import base64
 import streamlit as st
-
-
-# =====================================================================
-# TEMPORARY translation helper.
-# STATUS: TEMPORARY — will delete once the shared t() (language file) exists.
-# =====================================================================
-def t(key):
-    labels = {"start_button": "Begin Game"}
-    return labels.get(key, key)
+from translations.i18n import t
 
 
 HOME_IMAGE = "assets/images/home.png"
@@ -113,7 +105,7 @@ def render():
     # language button on the top-right plaque (label stays "EN/AR")
     if "language" not in st.session_state:
         st.session_state.language = "en"
-    if st.button("EN/AR", key="lang_btn"):
+    if st.button(t("language_toggle", st.session_state.language), key="lang_btn"):
         st.session_state.language = "ar" if st.session_state.language == "en" else "en"
         st.rerun()
 
@@ -125,7 +117,7 @@ def render():
     # number smaller / right bigger slides the button LEFT (and vice versa).
     left, mid, right = st.columns([3.2, 2, 3.3])
     with mid:
-        if st.button(t("start_button"), use_container_width=True):
+        if st.button(t("home_start_button", st.session_state.language), use_container_width=True):
             st.session_state.screen = "mode"   # go to mode-select page
             st.rerun()
 

@@ -1,19 +1,9 @@
 import os
 import base64
 import streamlit as st
+from translations.i18n import t
 
 DIFF_IMAGE = "assets/images/select.png"
-
-
-def t(key):
-    labels = {
-        "title": "Select Difficulty",
-        "easy": "EASY",
-        "medium": "MEDIUM",
-        "hard": "HARD",
-        "confirm": "CONFIRM",
-    }
-    return labels.get(key, key)
 
 
 def _image_base64(path):
@@ -119,18 +109,19 @@ def _dialog_css():
 @st.dialog(" ", width="large")
 def _dialog():
     _dialog_css()
+    lang = st.session_state.get("language", "en")
 
     # everything below is placed by the CSS above (no spacers, no columns)
-    st.markdown(f"<div class='diff-title'>{t('title')}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='diff-title'>{t('difficulty_title', lang)}</div>", unsafe_allow_html=True)
 
-    if st.button(t("easy"), key="diff_easy", use_container_width=True):
+    if st.button(t("difficulty_easy", lang), key="diff_easy", use_container_width=True):
         st.session_state.difficulty = "easy"
-    if st.button(t("medium"), key="diff_medium", use_container_width=True):
+    if st.button(t("difficulty_medium", lang), key="diff_medium", use_container_width=True):
         st.session_state.difficulty = "medium"
-    if st.button(t("hard"), key="diff_hard", use_container_width=True):
+    if st.button(t("difficulty_hard", lang), key="diff_hard", use_container_width=True):
         st.session_state.difficulty = "hard"
 
-    if st.button(t("confirm"), key="diff_confirm", use_container_width=True):
+    if st.button(t("difficulty_confirm", lang), key="diff_confirm", use_container_width=True):
         if "difficulty" not in st.session_state:
             st.session_state.difficulty = "medium"
         st.session_state.screen = "game"

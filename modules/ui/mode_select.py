@@ -1,20 +1,7 @@
 import os
 import base64
 import streamlit as st
-
-
-# =====================================================================
-# TEMPORARY translation helper.
-# STATUS: TEMPORARY — will delete once the shared t() (language file) exists.
-# =====================================================================
-def t(key):
-    labels = {
-        "title": "Select Your Opponent",
-        "back_button": "Back",
-        "play_with_friend": "Human  \nChallenger",
-        "play_with_bot": "Strategic AI",
-    }
-    return labels.get(key, key)
+from translations.i18n import t
 
 
 MODE_IMAGE = "assets/images/mode.png"
@@ -123,24 +110,25 @@ def _inject_style():
 # =====================================================================
 def render():
     _inject_style()
+    lang = st.session_state.get("language", "en")
 
     # The screen title, re-added at the top (removed from the image).
-    st.markdown(f"<div class='mode-title'>{t('title')}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='mode-title'>{t('mode_title', lang)}</div>", unsafe_allow_html=True)
 
     # Each button is positioned INDEPENDENTLY by CSS above
     # (the .st-key-btn_friend and .st-key-btn_bot rules). Move each one with its
     # own  left  and  top  values there — they no longer affect each other.
 
-    if st.button(t("back_button"), key="btn_back", use_container_width=True):
+    if st.button(t("back_button", lang), key="btn_back", use_container_width=True):
         st.session_state.screen = "home"
         st.rerun()
 
-    if st.button(t("play_with_friend"), key="btn_friend", use_container_width=True):
+    if st.button(t("play_with_friend", lang), key="btn_friend", use_container_width=True):
         st.session_state.mode = "friend"
         st.session_state.screen = "game"        # friend -> straight to the board
         st.rerun()
 
-    if st.button(t("play_with_bot"), key="btn_bot", use_container_width=True):
+    if st.button(t("play_with_bot", lang), key="btn_bot", use_container_width=True):
         st.session_state.mode = "bot"
         st.session_state.screen = "difficulty"    # bot -> pick difficulty first
         st.rerun()

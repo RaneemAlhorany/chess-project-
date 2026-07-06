@@ -93,37 +93,40 @@ class HistoryManager:
         return list(self._moves)
 
 
-
-
-
-
-# 9
-    def get_last_move(self) -> Optional[MoveRecord]:
+    def get_last_move(self) -> MoveRecord | None:
         """
-        Return the most recent move without removing it.
+        Return the most recently recorded move.
 
         Returns:
-            The last MoveRecord if one exists; otherwise None.
+            The last recorded move, or None if the history is empty.
         """
 
         return self._moves[-1] if self._moves else None
 
-# 8
-    def get_move_at(self, index: int) -> Optional[MoveRecord]:
+
+
+    def get_move_at(self, index: int) -> MoveRecord | None:
         """
-        Return the move at a specific index in the history.
+        Return the recorded move at the specified history index.
 
         Args:
-            index: Zero-based position in the history.
+            index: The zero-based position of the move.
 
         Returns:
-            The MoveRecord at that index, or None if out of range.
+            The requested move record, or None if the index is invalid.
         """
 
         if 0 <= index < len(self._moves):
             return self._moves[index]
 
         return None
+
+
+
+
+
+
+
 # 7
     def get_move_count(self) -> int:
         """
