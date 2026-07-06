@@ -527,17 +527,6 @@ class GameManager:
         return self._engine.get_san_history()
 
 
-    def get_game_state(self) -> Optional[GameState]:
-        """
-        Return the currently active game state.
-
-        Returns:
-            The active GameState instance, or None if no game is running.
-        """
-
-        return self._game_state
-
-
     def get_result(self) -> str:
         """
         Return the official result of the current game.
