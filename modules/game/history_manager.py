@@ -122,32 +122,27 @@ class HistoryManager:
         return None
 
 
-
-
-
-
-
-# 7
     def get_move_count(self) -> int:
         """
-        Return the total number of moves stored in the history.
+        Return the number of recorded moves.
 
         Returns:
-            The length of the move history.
+            The total number of recorded moves.
         """
 
         return len(self._moves)
 
-# 6
+
     def get_current_index(self) -> int:
         """
-        Return the index of the currently-viewed move.
+        Return the current navigation position.
 
         Returns:
-            The current navigation index, or -1 if no moves exist.
+            The current move index, or -1 if the history is empty.
         """
 
         return self._current_index
+
 
 #% ==================================================
 #! Navigation
