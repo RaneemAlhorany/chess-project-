@@ -1,18 +1,22 @@
-from typing import List, Optional
+
+#% ==================================================
+#! Models
+#% ==================================================
 
 from modules.models.move_record import MoveRecord
 
 
+
 class HistoryManager:
     """
-    Manages the full move history with rich per-move metadata.
+    Manages the move history of a chess game.
 
-    Each move is stored as a MoveRecord containing SAN notation,
-    source/destination squares, piece information, special-move
-    flags, and resulting board status.
+    This manager records played moves, provides access to the
+    recorded history, and supports navigation through previously
+    recorded moves.
 
-    The manager also supports basic navigation (forward/backward)
-    for reviewing previously played moves.
+    It is responsible only for managing move history and does
+    not perform move validation or game logic.
     """
 
 #% ==================================================
@@ -21,18 +25,18 @@ class HistoryManager:
 
     def __init__(self) -> None:
         """
-        Initialise an empty move history.
+        Initialize the history manager.
 
-        The current index always points to the last recorded move;
-        navigation methods adjust this index without modifying the
-        underlying history.
+        Creates an empty move history and resets the navigation
+        position to its initial state.
         """
 
-        #! Ordered list of all recorded moves.
-        self._moves: List[MoveRecord] = []
+        #! Ordered list of recorded moves.
+        self._moves: list[MoveRecord] = []
 
-        #! Index of the currently-viewed move (-1 means no move yet).
+        #! Current position within the move history (-1 means no moves).
         self._current_index: int = -1
+
 
 #% ==================================================
 #! Recording & Undo
@@ -40,14 +44,14 @@ class HistoryManager:
 
     def record_move(self, record: MoveRecord) -> None:
         """
-        Append a move record to the history and advance the index.
+        Record a move in the history.
 
-        If the user had navigated backwards, any moves after the
-        current index are discarded before recording (branching
-        history is not supported).
+        If the current navigation position is not at the end of the
+        history, all subsequent moves are discarded before recording
+        the new move.
 
         Args:
-            record: The fully-populated MoveRecord to store.
+            record: The move record to add to the history.
         """
 
         if self._current_index < len(self._moves) - 1:
@@ -56,36 +60,44 @@ class HistoryManager:
         self._moves.append(record)
         self._current_index = len(self._moves) - 1
 
-    def undo_last(self) -> Optional[MoveRecord]:
+
+    def undo_last(self) -> MoveRecord | None:
         """
-        Remove and return the most recently recorded move.
+        Remove and return the last recorded move.
 
         Returns:
-            The removed MoveRecord if one existed; otherwise None.
+            The removed move record, or None if the history is empty.
         """
 
         if not self._moves:
             return None
 
-        popped = self._moves.pop()
+        removed_move = self._moves.pop()
         self._current_index = len(self._moves) - 1
 
-        return popped
+        return removed_move
+
 
 #% ==================================================
 #! Query
 #% ==================================================
 
-    def get_history(self) -> List[MoveRecord]:
+    def get_history(self) -> list[MoveRecord]:
         """
-        Return a shallow copy of the entire move history.
+        Return a copy of the recorded move history.
 
         Returns:
-            A list of all MoveRecord objects in chronological order.
+            A list of move records in chronological order.
         """
 
         return list(self._moves)
 
+
+
+
+
+
+# 9
     def get_last_move(self) -> Optional[MoveRecord]:
         """
         Return the most recent move without removing it.
@@ -96,6 +108,7 @@ class HistoryManager:
 
         return self._moves[-1] if self._moves else None
 
+# 8
     def get_move_at(self, index: int) -> Optional[MoveRecord]:
         """
         Return the move at a specific index in the history.
@@ -111,7 +124,7 @@ class HistoryManager:
             return self._moves[index]
 
         return None
-
+# 7
     def get_move_count(self) -> int:
         """
         Return the total number of moves stored in the history.
@@ -122,6 +135,7 @@ class HistoryManager:
 
         return len(self._moves)
 
+# 6
     def get_current_index(self) -> int:
         """
         Return the index of the currently-viewed move.
@@ -136,6 +150,7 @@ class HistoryManager:
 #! Navigation
 #% ==================================================
 
+# 5
     def can_go_forward(self) -> bool:
         """
         Check whether a later move exists to navigate to.
@@ -146,6 +161,7 @@ class HistoryManager:
 
         return self._current_index < len(self._moves) - 1
 
+# 4
     def can_go_backward(self) -> bool:
         """
         Check whether an earlier move exists to navigate to.
@@ -156,6 +172,7 @@ class HistoryManager:
 
         return self._current_index > 0
 
+# 3
     def go_forward(self) -> Optional[MoveRecord]:
         """
         Advance the current index by one and return that move.
@@ -170,6 +187,7 @@ class HistoryManager:
         self._current_index += 1
         return self._moves[self._current_index]
 
+# 2
     def go_backward(self) -> Optional[MoveRecord]:
         """
         Rewind the current index by one and return that move.
@@ -188,6 +206,7 @@ class HistoryManager:
 #! Management
 #% ==================================================
 
+# 1
     def clear(self) -> None:
         """
         Reset the history to an empty state.
