@@ -61,6 +61,7 @@ class HistoryManager:
         self._current_index = len(self._moves) - 1
 
 
+
     def undo_last(self) -> MoveRecord | None:
         """
         Remove and return the last recorded move.
@@ -78,6 +79,7 @@ class HistoryManager:
         return removed_move
 
 
+
 #% ==================================================
 #! Query
 #% ==================================================
@@ -93,6 +95,7 @@ class HistoryManager:
         return list(self._moves)
 
 
+
     def get_last_move(self) -> MoveRecord | None:
         """
         Return the most recently recorded move.
@@ -102,6 +105,7 @@ class HistoryManager:
         """
 
         return self._moves[-1] if self._moves else None
+
 
 
 
@@ -122,6 +126,7 @@ class HistoryManager:
         return None
 
 
+
     def get_move_count(self) -> int:
         """
         Return the number of recorded moves.
@@ -131,6 +136,7 @@ class HistoryManager:
         """
 
         return len(self._moves)
+
 
 
     def get_current_index(self) -> int:
@@ -148,35 +154,39 @@ class HistoryManager:
 #! Navigation
 #% ==================================================
 
-# 5
     def can_go_forward(self) -> bool:
         """
-        Check whether a later move exists to navigate to.
+        Determine whether navigation can move forward.
 
         Returns:
-            True if there is a move ahead of the current index.
+            True if a later recorded move is available; otherwise False.
         """
 
         return self._current_index < len(self._moves) - 1
 
-# 4
+
+
+
     def can_go_backward(self) -> bool:
         """
-        Check whether an earlier move exists to navigate to.
+        Determine whether navigation can move backward.
 
         Returns:
-            True if there is a move before the current index.
+            True if an earlier recorded move is available;
+            otherwise False.
         """
 
         return self._current_index > 0
 
-# 3
-    def go_forward(self) -> Optional[MoveRecord]:
+
+
+    def go_forward(self) -> MoveRecord | None:
         """
-        Advance the current index by one and return that move.
+        Navigate to the next recorded move.
 
         Returns:
-            The next MoveRecord, or None if already at the end.
+            The next move record, or None if already at the end
+            of the history.
         """
 
         if not self.can_go_forward():
@@ -185,13 +195,16 @@ class HistoryManager:
         self._current_index += 1
         return self._moves[self._current_index]
 
-# 2
-    def go_backward(self) -> Optional[MoveRecord]:
+
+
+
+    def go_backward(self) -> MoveRecord | None:
         """
-        Rewind the current index by one and return that move.
+        Navigate to the previous recorded move.
 
         Returns:
-            The previous MoveRecord, or None if already at the start.
+            The previous move record, or None if already at the
+            beginning of the history.
         """
 
         if not self.can_go_backward():
@@ -199,15 +212,15 @@ class HistoryManager:
 
         self._current_index -= 1
         return self._moves[self._current_index]
-
+    
 #% ==================================================
 #! Management
 #% ==================================================
 
-# 1
+
     def clear(self) -> None:
         """
-        Reset the history to an empty state.
+        Clear the move history and reset the navigation state.
         """
 
         self._moves.clear()
