@@ -316,6 +316,14 @@ class ChessEngine:
 
     def outcome_reason(self) -> Optional[GameEndReason]:
 
+        """
+        Return the reason why the current game has ended.
+
+        Returns:
+            A GameEndReason enum value if the game is over;
+            otherwise None.
+        """
+
         outcome = self.board.outcome()
         if outcome is None:
             return None
@@ -323,6 +331,8 @@ class ChessEngine:
             outcome.termination,
             GameEndReason.UNKNOWN,
         )
+
+
 
     def is_draw(self) -> bool:
         """
