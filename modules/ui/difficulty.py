@@ -83,7 +83,7 @@ def _dialog_css():
         /* --- the three cards, each placed by CSS (own left / top) --- */
         .st-key-diff_easy, .st-key-diff_medium, .st-key-diff_hard {{
             position: absolute;
-            top: 63%;
+            top: 64%;
             transform: translateX(-50%);
             width: 150px;
         }}

@@ -47,6 +47,7 @@ def main() -> None:
         return
 
     if screen == "difficulty":
+        mode_select.render()          # draw the mode scene behind the popup
         difficulty_ui.open_dialog()
         return
 
