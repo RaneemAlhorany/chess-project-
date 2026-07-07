@@ -1,6 +1,7 @@
 import os
 import base64
 import streamlit as st
+from translations.i18n import t
 
 
 # =====================================================================
