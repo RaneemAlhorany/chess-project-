@@ -10,7 +10,7 @@ from modules.shared.enums.game_status import GameStatus
 from modules.shared.enums.difficulty import Difficulty
 from modules.shared.enums.player_color import PlayerColor
 from translations.i18n import t
-from modules.ui import promotion
+from modules.ui import promotion, result
 
 GAME_IMAGE = "assets/images/Game.png"
 
@@ -371,10 +371,13 @@ def render(manager: GameManager) -> None:
         st.rerun()
     if st.button("END GAME", key="btn_end"):
         _clear_move_state()
-        st.session_state.screen = "result"
+        st.session_state.screen = "home"
         st.rerun()
 
-    # ---- promotion chooser (only when a pawn is promoting) ----
-    # promotion popup — opens automatically while a pawn promotion is pending
+    # ---- promotion popup — opens while a pawn promotion is pending ----
     if st.session_state.get("pending_promotion_from") is not None:
         promotion.open_dialog(manager)
+
+    # ---- result popup — opens when the game is over (e.g. checkmate) ----
+    elif manager.is_game_over():
+        result.open_dialog(manager)
