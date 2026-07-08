@@ -3,16 +3,6 @@ import base64
 import streamlit as st
 from translations.i18n import t
 
-
-# =====================================================================
-# TEMPORARY translation helper.
-# STATUS: TEMPORARY — will delete once the shared t() (language file) exists.
-# =====================================================================
-def t(key):
-    labels = {"start_button": "Begin Game"}
-    return labels.get(key, key)
-
-
 HOME_IMAGE = "assets/images/home.png"
 
 
@@ -126,7 +116,7 @@ def render():
     # number smaller / right bigger slides the button LEFT (and vice versa).
     left, mid, right = st.columns([3.2, 2, 3.3])
     with mid:
-        if st.button(t("start_button"), use_container_width=True):
+        if st.button(t("home_start_button", st.session_state.language), use_container_width=True):
             st.session_state.screen = "mode"   # go to mode-select page
             st.rerun()
 

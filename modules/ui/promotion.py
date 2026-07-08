@@ -128,7 +128,7 @@ def _dialog(manager: GameManager):
     if "promotion_choice_name" not in st.session_state:
         st.session_state.promotion_choice_name = "queen"
 
-    st.markdown("<div class='promo-title'>Promote Pawn</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='promo-title'>{t('promote_pawn', lang)}</div>", unsafe_allow_html=True)
 
     if st.button(t("promotion_knight", lang), key="promo_knight", use_container_width=True):
         st.session_state.promotion_choice_name = "knight"
@@ -145,6 +145,9 @@ def _dialog(manager: GameManager):
         to = st.session_state.get("pending_promotion_to")
         if frm is not None and to is not None:
             manager.make_move(frm, to, _CHOICES[name])
+            timer = st.session_state.get("timer")   # pass the clock to the other side
+            if timer is not None:
+                timer.switch()
         for k in ("pending_promotion_from", "pending_promotion_to",
                   "promotion_choice_name", "selected_from_square"):
             st.session_state.pop(k, None)

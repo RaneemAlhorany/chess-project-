@@ -5,6 +5,7 @@ import chess
 import streamlit as st
 
 from modules.game.game_manager import GameManager
+from modules.game.timer_manager import TimerManager
 from modules.shared.enums.game_mode import GameMode
 from modules.shared.enums.game_status import GameStatus
 from modules.shared.enums.difficulty import Difficulty
@@ -61,6 +62,56 @@ def _clear_move_state() -> None:
     st.session_state.pop("pending_promotion_to", None)
 
 
+_TIME_CONTROL_SECONDS = 600   # 10 minutes per side (change this for a different clock)
+
+
+def _format_clock(seconds: float) -> str:
+    s = max(0, int(seconds))
+    return f"{s // 60}:{s % 60:02d}"
+
+
+def _sync_timer() -> None:
+    """Create the clock for a fresh game, or reset it when a new game starts."""
+    if "timer" not in st.session_state or st.session_state.pop("timer_needs_reset", False):
+        timer = TimerManager(initial_seconds=_TIME_CONTROL_SECONDS)
+        timer.start(PlayerColor.WHITE)   # white's clock starts first
+        st.session_state.timer = timer
+        st.session_state.pop("result_reason", None)
+
+
+def _timer_switch() -> None:
+    """Pass the clock to the other player after a move."""
+    timer = st.session_state.get("timer")
+    if timer is not None:
+        timer.switch()
+
+
+@st.fragment(run_every="1s")
+def _render_clocks() -> None:
+    """Draw both clocks and tick them once a second (only this reruns, not the board)."""
+    manager = st.session_state.get("game_manager")
+    timer = st.session_state.get("timer")
+    if manager is None or timer is None:
+        return
+
+    if manager.is_game_over() or st.session_state.get("result_reason"):
+        timer.pause()   # freeze the clocks once the game is over
+    else:
+        loser = timer.is_time_up()
+        if loser is not None:
+            # the player who ran out loses; the other wins on time
+            winner = PlayerColor.WHITE if loser == PlayerColor.BLACK else PlayerColor.BLACK
+            manager.end_game(winner)
+            timer.stop()
+            st.session_state.result_reason = "on Time"
+            st.rerun()   # full rerun so the result popup opens
+
+    black = _format_clock(timer.get_remaining_time(PlayerColor.BLACK))
+    white = _format_clock(timer.get_remaining_time(PlayerColor.WHITE))
+    st.markdown(f"<div class='g-gold g-opptime'>⏱ {black}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='g-gold g-youtime'>⏱ {white}</div>", unsafe_allow_html=True)
+
+
 # =====================================================================
 # move handling (click to select, click to move, + promotion)
 # =====================================================================
@@ -98,6 +149,7 @@ def _handle_click(manager: GameManager, clicked: int, language: str) -> None:
         return
 
     manager.make_move(selected, clicked, None)
+    _timer_switch()
     st.session_state.selected_from_square = None
 
 
@@ -267,7 +319,7 @@ def _inject_style(board: chess.Board) -> None:
         }}
         .st-key-btn_restart .stButton > button p, .st-key-btn_end .stButton > button p {{
             font-size: 1.2vw !important; letter-spacing: 2px !important; color:#ecd58a !important;
-            -webkit-text-fill-color:#ecd58a !important;
+            -webkit-text-fill-color:#ecd58a !important; text-transform: uppercase !important;
             text-shadow: 0 2px 3px rgba(0,0,0,0.7) !important;
         }}
         </style>
@@ -307,6 +359,7 @@ def _render_board(manager: GameManager) -> None:
 def render(manager: GameManager) -> None:
     language = st.session_state.get("language", "en")
     _ensure_game_started(manager)
+    _sync_timer()
 
     board = manager.get_board()
     _inject_style(board)
@@ -317,31 +370,27 @@ def render(manager: GameManager) -> None:
 
     # names (bot vs friend)
     if mode == GameMode.BOT:
-        opp_name, you_name = t("play_with_bot", language), "You"
-        mode_info = f"Bot · {_difficulty_from_session().value.capitalize()}"
+        opp_name, you_name = t("play_with_bot", language), t("game_you", language)
     else:
-        opp_name, you_name = "Black", "White"
-        mode_info = "Friend"
+        opp_name, you_name = t("color_black", language), t("color_white", language)
 
     # ---- turn indicator ----
     turn_word = t("label_turn", language)
-    side = format(board.turn)
+    turn_sub = t("white_to_move", language) if turn_white else t("black_to_move", language)
     st.markdown(f"<div class='g-gold g-turn'>{turn_word}</div>", unsafe_allow_html=True)
-    st.markdown(
-        f"<div class='g-gold g-turnsub'>{'White' if turn_white else 'Black'} to move</div>",
-        unsafe_allow_html=True,
-    )
+    st.markdown(f"<div class='g-gold g-turnsub'>{turn_sub}</div>", unsafe_allow_html=True)
 
     # ---- mode / difficulty (top-right) ----
     # (mode-info plaque was removed from the image, so no mode text here)
 
-    # ---- player panels (timers are PLACEHOLDER until TimerManager is wired) ----
+    # ---- player panels (names + captured; clocks are drawn by _render_clocks) ----
     st.markdown(f"<div class='g-gold g-oppname'>{opp_name}</div>", unsafe_allow_html=True)
-    st.markdown("<div class='g-gold g-opptime'>⏱ 15:00</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='g-gold g-oppcap'>{opp_cap}</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='g-gold g-youname'>{you_name}</div>", unsafe_allow_html=True)
-    st.markdown("<div class='g-gold g-youtime'>⏱ 15:00</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='g-gold g-youcap'>{you_cap}</div>", unsafe_allow_html=True)
+
+    # ---- the two clocks (tick live once a second) ----
+    _render_clocks()
 
     # ---- move history (right panel) ----
     history = manager.get_move_history()
@@ -365,11 +414,12 @@ def render(manager: GameManager) -> None:
         st.toast(t("warning_check", language))
 
     # ---- Restart / End Game ----
-    if st.button("RESTART", key="btn_restart"):
+    if st.button(t("game_restart", language), key="btn_restart"):
         manager.restart_game()
         _clear_move_state()
+        st.session_state.timer_needs_reset = True
         st.rerun()
-    if st.button("END GAME", key="btn_end"):
+    if st.button(t("game_end", language), key="btn_end"):
         _clear_move_state()
         st.session_state.screen = "home"
         st.rerun()
@@ -378,6 +428,6 @@ def render(manager: GameManager) -> None:
     if st.session_state.get("pending_promotion_from") is not None:
         promotion.open_dialog(manager)
 
-    # ---- result popup — opens when the game is over (e.g. checkmate) ----
-    elif manager.is_game_over():
+    # ---- result popup — opens on checkmate OR when a clock runs out ----
+    elif manager.is_game_over() or st.session_state.get("result_reason"):
         result.open_dialog(manager)

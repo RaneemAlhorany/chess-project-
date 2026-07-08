@@ -20,6 +20,7 @@ from modules.game.game_manager import GameManager
 from modules.shared.enums.game_mode import GameMode
 from modules.shared.enums.player_color import PlayerColor
 from modules.shared.enums.game_end_reason import GameEndReason
+from translations.i18n import t
 
 RESULT_IMAGE = "assets/images/victory.png"
 
@@ -29,8 +30,8 @@ def _image_base64(path):
         return base64.b64encode(f.read()).decode()
 
 
-def _winner_and_reason(manager: GameManager):
-    """Read the winner and end reason from the backend game state."""
+def _winner_and_reason(manager: GameManager, language: str):
+    """Read the (translated) winner and end reason from the backend game state."""
     state = manager.get_game_state()
     winner = state.winner if state else None
     end_reason = state.end_reason if state else None
@@ -38,18 +39,20 @@ def _winner_and_reason(manager: GameManager):
 
     # winner label: White / Black / Bot
     if winner == PlayerColor.WHITE:
-        winner_text = "White"
+        winner_text = t("color_white", language)
     elif winner == PlayerColor.BLACK:
         # in bot mode the black side is the bot
-        winner_text = "Bot" if mode_raw == GameMode.BOT.value else "Black"
+        winner_text = (t("player_bot", language) if mode_raw == GameMode.BOT.value
+                       else t("color_black", language))
     else:
         winner_text = ""   # no winner (no draws expected)
 
-    # reason (only what the backend actually reports)
+    # reason
     reason_text = ""
-    if end_reason == GameEndReason.CHECKMATE:
-        reason_text = "by Checkmate"
-    # "on Time" would go here once the TimerManager is wired into the backend.
+    if st.session_state.get("result_reason") == "on Time":
+        reason_text = t("reason_timeout", language)
+    elif end_reason == GameEndReason.CHECKMATE:
+        reason_text = t("reason_checkmate", language)
 
     return winner_text, reason_text
 
@@ -130,24 +133,30 @@ def _dialog_css():
 @st.dialog(" ", width="large")
 def _dialog(manager: GameManager):
     _dialog_css()
-    winner_text, reason_text = _winner_and_reason(manager)
+    lang = st.session_state.get("language", "en")
+    winner_text, reason_text = _winner_and_reason(manager, lang)
 
     if winner_text:
-        st.markdown(f"<div class='result-winner'>{winner_text} Wins</div>",
-                    unsafe_allow_html=True)
+        st.markdown(
+            f"<div class='result-winner'>{winner_text} {t('result_wins', lang)}</div>",
+            unsafe_allow_html=True,
+        )
     if reason_text:
         st.markdown(f"<div class='result-reason'>{reason_text}</div>",
                     unsafe_allow_html=True)
 
-    if st.button("PLAY AGAIN", key="btn_again", use_container_width=True):
+    if st.button(t("button_play_again", lang), key="btn_again", use_container_width=True):
         manager.restart_game()
         for k in ("selected_from_square", "pending_promotion_from",
                   "pending_promotion_to", "promotion_choice_name"):
             st.session_state.pop(k, None)
+        st.session_state.timer_needs_reset = True   # fresh clock for the new game
         st.session_state.screen = "game"
         st.rerun()
 
-    if st.button("MAIN PAGE", key="btn_home", use_container_width=True):
+    if st.button(t("button_main_page", lang), key="btn_home", use_container_width=True):
+        st.session_state.pop("result_reason", None)
+        st.session_state.timer_needs_reset = True
         st.session_state.screen = "home"
         st.rerun()
 
