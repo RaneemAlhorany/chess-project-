@@ -1,93 +1,98 @@
 import time
-
-from typing import Optional
-
 from modules.shared.enums.player_color import PlayerColor
+
 
 
 class TimerManager:
     """
     Manages chess clocks for both players.
 
-    Supports standard time controls with an optional increment
-    applied after each move.  Each player's clock counts down
-    independently; the active clock belongs to the player whose
-    turn it is.
+    This manager controls the remaining time for each player,
+    supports configurable time controls, and handles clock
+    operations such as starting, pausing, resuming, stopping,
+    and switching turns.
+
+    It is responsible only for time management and does not
+    determine player turns, validate moves, or decide game
+    outcomes.
     """
+
+
 
 #% ==================================================
 #! Constructor
 #% ==================================================
 
-    def __init__(self,
-                 initial_seconds: float = 600.0,
-                 increment_seconds: float = 0.0) -> None:
+    def __init__(
+        self,
+        initial_seconds: float = 600.0,
+        increment_seconds: float = 0.0,
+    ) -> None:
         """
-        Initialise both clocks with the given time control.
+        Initialize the timer manager.
 
         Args:
-            initial_seconds: Starting time in seconds for each player
-                             (default 10 minutes).
-            increment_seconds: Bonus seconds added after each move
-                               (default 0).
+            initial_seconds: The starting time, in seconds,
+                assigned to each player.
+            increment_seconds: The bonus time, in seconds,
+                added after each completed move.
         """
 
-        #! Time control parameters.
+        #! Configured time control.
         self._initial_time: float = initial_seconds
         self._increment: float = increment_seconds
 
-        #! Remaining time in seconds for each player.
+        #! Remaining time for each player.
         self._white_time: float = initial_seconds
         self._black_time: float = initial_seconds
 
-        #! Which clock is currently ticking, if any.
-        self._active_color: Optional[PlayerColor] = None
-
-        #! Monotonic timestamp of when the active clock was started.
-        self._turn_started_at: Optional[float] = None
-
-        #! Whether the clock is running.
+        #! Runtime clock state.
+        self._active_color: PlayerColor | None = None
+        self._turn_started_at: float | None = None
         self._running: bool = False
 
 #% ==================================================
 #! Time Control
 #% ==================================================
 
-    def set_time_control(self,
-                         initial_seconds: float,
-                         increment_seconds: float = 0.0) -> None:
+    def set_time_control(
+        self,
+        initial_seconds: float,
+        increment_seconds: float = 0.0,
+    ) -> None:
         """
-        Update the time control parameters and reset both clocks.
+        Configure a new time control and reset both clocks.
 
         Args:
-            initial_seconds: New starting time in seconds per player.
-            increment_seconds: New increment in seconds per move.
+            initial_seconds: The starting time, in seconds,
+                assigned to each player.
+            increment_seconds: The bonus time, in seconds,
+                added after each completed move.
         """
-
-        self.stop()
 
         self._initial_time = initial_seconds
         self._increment = increment_seconds
 
-        self._white_time = initial_seconds
-        self._black_time = initial_seconds
+        self.reset()
+
 
     def get_initial_time(self) -> float:
         """
-        Return the configured initial time per player.
+        Return the configured initial time for each player.
 
         Returns:
-            The starting time in seconds.
+            The initial time, in seconds.
         """
 
         return self._initial_time
 
+
     def get_increment(self) -> float:
         """
-        Return the configured increment per move.
+        Return the configured increment for each move.
 
         Returns:
-            The increment in seconds.
+            The increment, in seconds.
         """
 
         return self._increment
@@ -96,43 +101,41 @@ class TimerManager:
 #! Clock Controls
 #% ==================================================
 
+
     def start(self, color: PlayerColor) -> None:
         """
-        Start (or resume) the clock for the given player.
-
-        If the clocks were previously stopped, the active colour
-        is set and its timer begins counting down from its
-        remaining time.
+        Start the clock for the specified player.
 
         Args:
-            color: The player whose clock should start ticking.
+            color: The player whose clock should begin running.
         """
 
+        if self._running:
+            return
+
         self._active_color = color
-        self._turn_started_at = time.monotonic()
-        self._running = True
+        self._start_clock()
+
+
 
     def switch(self) -> None:
         """
-        Switch the active clock after a move.
+        Switch the active clock to the opposing player.
 
-        The current player's elapsed time is deducted, the
-        increment is applied to that player, and the opponent's
-        clock starts.
+        The active player's remaining time is updated before
+        the opponent's clock begins running.
         """
 
         if not self._running or self._active_color is None:
             return
 
-        elapsed = self._deduct_elapsed()
+        self._deduct_elapsed()
 
-        # Apply increment to the player who just moved.
         if self._active_color == PlayerColor.WHITE:
             self._white_time += self._increment
         else:
             self._black_time += self._increment
 
-        # Switch to the opponent.
         self._active_color = (
             PlayerColor.BLACK
             if self._active_color == PlayerColor.WHITE
@@ -141,12 +144,13 @@ class TimerManager:
 
         self._turn_started_at = time.monotonic()
 
+
     def pause(self) -> None:
         """
-        Pause the active clock without switching turns.
+        Pause the active clock.
 
-        The elapsed time since the last start or switch is
-        deducted from the active player's remaining time.
+        The active player's remaining time is updated before
+        the clock is suspended.
         """
 
         if not self._running or self._active_color is None:
@@ -156,20 +160,27 @@ class TimerManager:
         self._running = False
         self._turn_started_at = None
 
+
     def resume(self) -> None:
         """
-        Resume a paused clock for the same active player.
+        Resume the active player's clock.
+
+        The timer continues from the player's remaining time
+        without changing the active player.
         """
 
         if self._running or self._active_color is None:
             return
 
-        self._turn_started_at = time.monotonic()
-        self._running = True
+        self._start_clock()
+
 
     def stop(self) -> None:
         """
-        Stop the clock entirely and deduct any remaining elapsed time.
+        Stop the timer.
+
+        If the clock is currently running, the active player's
+        remaining time is updated before the timer is reset.
         """
 
         if self._active_color is None:
@@ -182,19 +193,35 @@ class TimerManager:
         self._active_color = None
         self._turn_started_at = None
 
+
+
+#% ==================================================
+#! Private Helpers
+#% ==================================================
+
+
+    def _start_clock(self) -> None:
+        """
+        Start timing for the current active player.
+
+        This helper records the current timestamp and marks
+        the timer as running.
+        """
+
+        self._turn_started_at = time.monotonic()
+        self._running = True
+
 #% ==================================================
 #! Helpers
 #% ==================================================
 
     def _deduct_elapsed(self) -> float:
         """
-        Deduct the elapsed time from the currently active clock.
+        Update the active player's remaining time.
 
         Returns:
-            The number of seconds that were deducted.
-
-        Raises:
-            RuntimeError: if no clock is active.
+            The elapsed time, in seconds, that was deducted
+            from the active player's clock.
         """
 
         if self._active_color is None or self._turn_started_at is None:
@@ -211,64 +238,86 @@ class TimerManager:
 
         return elapsed
 
+
+    def _get_remaining_time_value(self, player: PlayerColor) -> float:
+        """
+        Return the stored remaining time for the specified player.
+
+        Args:
+            player: The player whose stored remaining time should
+                be returned.
+
+        Returns:
+            The internally stored remaining time, in seconds.
+        """
+
+        if player == PlayerColor.WHITE:
+            return self._white_time
+
+        return self._black_time
+
+
+
 #% ==================================================
 #! Query
 #% ==================================================
 
     def get_remaining_time(self, color: PlayerColor) -> float:
         """
-        Return the remaining time for the given player.
+        Return the remaining time for the specified player.
 
-        If the player's clock is actively running, the returned
-        value accounts for time elapsed up to the instant of the
-        call.
+        If the player's clock is currently running, the returned
+        value reflects the elapsed time up to the moment of the call.
 
         Args:
-            color: The player colour to query.
+            color: The player whose remaining time should be returned.
 
         Returns:
-            Remaining time in seconds (never negative).
+            The remaining time, in seconds.
         """
 
-        remaining = (
-            self._white_time
-            if color == PlayerColor.WHITE
-            else self._black_time
-        )
+        remaining = self._get_remaining_time_value(color)
 
-        if self._running and self._active_color == color:
-            elapsed = time.monotonic() - (self._turn_started_at or 0.0)
+        if (
+            self._running
+            and self._active_color == color
+            and self._turn_started_at is not None
+        ):
+            elapsed = time.monotonic() - self._turn_started_at
             remaining = max(0.0, remaining - elapsed)
 
         return remaining
 
-    def get_active_color(self) -> Optional[PlayerColor]:
+
+    def get_active_color(self) -> PlayerColor | None:
         """
-        Return the colour whose clock is currently active.
+        Return the player whose clock is currently active.
 
         Returns:
-            The active PlayerColor, or None if no clock is running.
+            The active player, or None if no clock is active.
         """
 
         return self._active_color
 
+
     def is_running(self) -> bool:
         """
-        Check whether any clock is currently ticking.
+        Return whether the timer is currently running.
 
         Returns:
-            True if a clock is active; otherwise False.
+            True if a player's clock is active; otherwise False.
         """
 
         return self._running
 
-    def is_time_up(self) -> Optional[PlayerColor]:
+
+    def is_time_up(self) -> PlayerColor | None:
         """
-        Check whether either player has run out of time.
+        Return the player whose time has expired.
 
         Returns:
-            The PlayerColor whose time has expired, or None if
-            both players still have time remaining.
+            The player whose remaining time has reached zero,
+            or None if both players still have time remaining.
         """
 
         white = self.get_remaining_time(PlayerColor.WHITE)
@@ -282,20 +331,23 @@ class TimerManager:
 
         return None
 
+
 #% ==================================================
 #! Management
 #% ==================================================
 
     def reset(self) -> None:
         """
-        Reset both clocks to the configured initial time and stop.
+        Reset the timer to its configured initial state.
 
-        This does NOT change the time control parameters; use
-        ``set_time_control`` to change those.
+        The configured time control remains unchanged, while
+        both player clocks and the runtime state are restored.
         """
 
         self._white_time = self._initial_time
         self._black_time = self._initial_time
+
         self._active_color = None
         self._turn_started_at = None
         self._running = False
+
