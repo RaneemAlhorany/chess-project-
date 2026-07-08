@@ -133,16 +133,12 @@ class TimerManager:
 
         if self._active_color == PlayerColor.WHITE:
             self._white_time += self._increment
+            self._active_color = PlayerColor.BLACK
         else:
             self._black_time += self._increment
+            self._active_color = PlayerColor.WHITE
 
-        self._active_color = (
-            PlayerColor.BLACK
-            if self._active_color == PlayerColor.WHITE
-            else PlayerColor.WHITE
-        )
-
-        self._turn_started_at = time.monotonic()
+        self._start_clock()
 
 
     def pause(self) -> None:
@@ -211,9 +207,6 @@ class TimerManager:
         self._turn_started_at = time.monotonic()
         self._running = True
 
-#% ==================================================
-#! Helpers
-#% ==================================================
 
     def _deduct_elapsed(self) -> float:
         """
