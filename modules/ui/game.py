@@ -54,12 +54,20 @@ def _ensure_game_started(manager: GameManager) -> None:
         mode == GameMode.BOT and state.difficulty != difficulty
     ):
         manager.start_game(game_mode=mode, difficulty=difficulty)
+        st.session_state.timer_needs_reset = True
 
 
 def _clear_move_state() -> None:
     st.session_state.pop("selected_from_square", None)
     st.session_state.pop("pending_promotion_from", None)
     st.session_state.pop("pending_promotion_to", None)
+
+
+def _prepare_new_game(manager: GameManager) -> None:
+    manager.restart_game()
+    _clear_move_state()
+    st.session_state.pop("result_reason", None)
+    st.session_state.timer_needs_reset = True
 
 
 _TIME_CONTROL_SECONDS = 600   # 10 minutes per side (change this for a different clock)
@@ -148,8 +156,10 @@ def _handle_click(manager: GameManager, clicked: int, language: str) -> None:
         st.session_state.selected_from_square = None
         return
 
-    manager.make_move(selected, clicked, None)
-    _timer_switch()
+    moves = manager.make_move(selected, clicked, None)
+    # Switch the clock once per executed move (player, then possibly bot).
+    for _ in range(moves):
+        _timer_switch()
     st.session_state.selected_from_square = None
 
 
@@ -382,6 +392,14 @@ def render(manager: GameManager) -> None:
 
     # ---- mode / difficulty (top-right) ----
     # (mode-info plaque was removed from the image, so no mode text here)
+    if mode == GameMode.BOT:
+        try:
+            bot_avail = manager._bot.is_available()
+            bot_depth = manager._bot.get_depth()
+        except Exception:
+            bot_avail = False
+            bot_depth = "-"
+        st.markdown(f"<div class='g-gold g-modeinfo'>AI: {'OK' if bot_avail else 'Missing'} (depth={bot_depth})</div>", unsafe_allow_html=True)
 
     # ---- player panels (names + captured; clocks are drawn by _render_clocks) ----
     st.markdown(f"<div class='g-gold g-oppname'>{opp_name}</div>", unsafe_allow_html=True)
@@ -415,12 +433,10 @@ def render(manager: GameManager) -> None:
 
     # ---- Restart / End Game ----
     if st.button(t("game_restart", language), key="btn_restart"):
-        manager.restart_game()
-        _clear_move_state()
-        st.session_state.timer_needs_reset = True
+        _prepare_new_game(manager)
         st.rerun()
     if st.button(t("game_end", language), key="btn_end"):
-        _clear_move_state()
+        _prepare_new_game(manager)
         st.session_state.screen = "home"
         st.rerun()
 

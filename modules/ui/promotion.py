@@ -144,10 +144,11 @@ def _dialog(manager: GameManager):
         frm = st.session_state.get("pending_promotion_from")
         to = st.session_state.get("pending_promotion_to")
         if frm is not None and to is not None:
-            manager.make_move(frm, to, _CHOICES[name])
+            moves = manager.make_move(frm, to, _CHOICES[name])
             timer = st.session_state.get("timer")   # pass the clock to the other side
             if timer is not None:
-                timer.switch()
+                for _ in range(moves):
+                    timer.switch()
         for k in ("pending_promotion_from", "pending_promotion_to",
                   "promotion_choice_name", "selected_from_square"):
             st.session_state.pop(k, None)

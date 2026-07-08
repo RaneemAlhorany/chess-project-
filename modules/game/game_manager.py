@@ -68,6 +68,9 @@ class GameManager:
 
         #! Active game state.
         self._game_state: Optional[GameState] = None
+        # logger for diagnostic messages
+        import logging
+        self._logger = logging.getLogger(__name__)
 
 
 #% ==================================================
@@ -154,7 +157,7 @@ class GameManager:
 #% ==================================================
 
     def make_move(self,from_square: int,to_square: int,
-        promotion: Optional[int] = None,) -> bool:
+        promotion: Optional[int] = None,) -> int:
         """
         Execute a player's move.
 
@@ -172,22 +175,31 @@ class GameManager:
             otherwise False.
         """
 
+        # Execute the player's move.
         if self._engine.make_move(
             from_square,
             to_square,
             promotion,
         ) is None:
-            return False
+            return 0
 
         self._update_game_status()
 
+        moves_executed = 1
+
+        # If playing against the bot, let it respond immediately.
         if self._should_make_bot_move():
             if not self._make_bot_move():
-                return False
+                # Bot failed to play; still count the player's move.
+                self._sync_session()
+                return moves_executed
+
+            # Bot moved successfully.
+            moves_executed += 1
 
         self._sync_session()
 
-        return True
+        return moves_executed
 
 
 
@@ -262,12 +274,27 @@ class GameManager:
             otherwise False.
         """
 
+        # Diagnostic log
+        try:
+            self._logger.debug("Requesting bot move")
+        except Exception:
+            pass
+
         fen = self._engine.get_fen()
 
         uci_move = self._bot.get_best_move(fen)
 
         if uci_move is None:
+            try:
+                self._logger.debug("Bot returned no move for fen: %s", fen)
+            except Exception:
+                pass
             return False
+
+        try:
+            self._logger.debug("Bot move: %s", uci_move)
+        except Exception:
+            pass
 
         return self._apply_bot_move(uci_move)
 

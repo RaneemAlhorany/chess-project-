@@ -1,11 +1,13 @@
 import os
 import base64
 import streamlit as st
+from functools import lru_cache
 from translations.i18n import t
 
 DIFF_IMAGE = "assets/images/select.png"
 
 
+@lru_cache(maxsize=1)
 def _image_base64(path):
     with open(path, "rb") as f:
         return base64.b64encode(f.read()).decode()
@@ -116,10 +118,16 @@ def _dialog():
 
     if st.button(t("difficulty_easy", lang), key="diff_easy", use_container_width=True):
         st.session_state.difficulty = "easy"
+        st.session_state.screen = "game"
+        st.rerun()
     if st.button(t("difficulty_medium", lang), key="diff_medium", use_container_width=True):
         st.session_state.difficulty = "medium"
+        st.session_state.screen = "game"
+        st.rerun()
     if st.button(t("difficulty_hard", lang), key="diff_hard", use_container_width=True):
         st.session_state.difficulty = "hard"
+        st.session_state.screen = "game"
+        st.rerun()
 
     if st.button(t("difficulty_confirm", lang), key="diff_confirm", use_container_width=True):
         if "difficulty" not in st.session_state:

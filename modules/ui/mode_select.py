@@ -1,12 +1,15 @@
 import os
 import base64
 import streamlit as st
+from functools import lru_cache
 from translations.i18n import t
+from modules.bot.stockfish_engine import StockfishEngine
 
 
 MODE_IMAGE = "assets/images/mode.png"
 
 
+@lru_cache(maxsize=1)
 def _image_base64(path):
     with open(path, "rb") as f:
         return base64.b64encode(f.read()).decode()
@@ -130,6 +133,10 @@ def render():
 
     if st.button(t("play_with_bot", lang), key="btn_bot", use_container_width=True):
         st.session_state.mode = "bot"
+        if "preloaded_bot" not in st.session_state:
+            with st.spinner(t("preparing_ai", lang) if hasattr(t, '__call__') else "Preparing AI..."):
+                st.session_state.preloaded_bot = StockfishEngine()
+
         st.session_state.screen = "difficulty"    # bot -> pick difficulty first
         st.rerun()
 

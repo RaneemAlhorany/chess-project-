@@ -15,6 +15,12 @@ st.set_page_config(page_title=PAGE_TITLE, page_icon=PAGE_ICON, layout=PAGE_LAYOU
 def get_manager() -> GameManager:
     if "game_manager" not in st.session_state:
         st.session_state.game_manager = GameManager()
+        # Reuse a preloaded Stockfish engine if available to avoid reinitialization.
+        if "preloaded_bot" in st.session_state:
+            try:
+                st.session_state.game_manager._bot = st.session_state.preloaded_bot
+            except Exception:
+                pass
     return st.session_state.game_manager
 
 
@@ -34,8 +40,6 @@ def _init_session_defaults() -> None:
 
 def main() -> None:
     _init_session_defaults()
-
-    manager = get_manager()
     screen = st.session_state.get("screen", "home")
 
     if screen == "home":
@@ -52,6 +56,7 @@ def main() -> None:
         return
 
     if screen == "game":
+        manager = get_manager()
         game_ui.render(manager)
         return
 

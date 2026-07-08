@@ -150,12 +150,16 @@ def _dialog(manager: GameManager):
         for k in ("selected_from_square", "pending_promotion_from",
                   "pending_promotion_to", "promotion_choice_name"):
             st.session_state.pop(k, None)
+        st.session_state.pop("result_reason", None)
         st.session_state.timer_needs_reset = True   # fresh clock for the new game
         st.session_state.screen = "game"
         st.rerun()
 
     if st.button(t("button_main_page", lang), key="btn_home", use_container_width=True):
         st.session_state.pop("result_reason", None)
+        for k in ("selected_from_square", "pending_promotion_from",
+                  "pending_promotion_to", "promotion_choice_name"):
+            st.session_state.pop(k, None)
         st.session_state.timer_needs_reset = True
         st.session_state.screen = "home"
         st.rerun()

@@ -6,6 +6,7 @@ from typing import Optional, Any
 import chess
 from stockfish import Stockfish as StockfishLib
 
+from modules.bot.stockfish_installer import ensure_local_stockfish_binary
 from modules.shared.enums.difficulty import Difficulty
 from modules.shared.constants.stockfish_constants import (
     STOCKFISH_PATH,
@@ -79,14 +80,16 @@ class StockfishEngine:
         safely without crashing.
         """
 
-        if not STOCKFISH_PATH.exists() or STOCKFISH_PATH.stat().st_size == 0:
+        binary_path = ensure_local_stockfish_binary() or STOCKFISH_PATH
+
+        if not binary_path.exists() or binary_path.stat().st_size == 0:
             self._engine = None
             self._available = False
             return
 
         try:
             self._engine = StockfishLib(
-                path=str(STOCKFISH_PATH)
+                path=str(binary_path)
             )
 
             self._engine.set_depth(
@@ -301,13 +304,15 @@ class StockfishEngine:
             return
 
         try:
-            self._engine.set_position()
+            # Use set_fen_position to reset to the standard starting FEN
+            import chess as _chess
+            self._engine.set_fen_position(_chess.STARTING_FEN)
 
         except Exception as error:
             logger.warning(
                 "Failed to reset Stockfish engine: %s",
                 error,
-            )       
+            )
 
 
 
