@@ -1,5 +1,5 @@
-from pathlib import Path
 import platform
+from pathlib import Path
 
 from modules.shared.enums.difficulty import Difficulty
 
@@ -8,22 +8,27 @@ from modules.shared.enums.difficulty import Difficulty
 #! Project Paths
 #% ==================================================
 
+# Root directory of the project, resolved relative to this file.
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 STOCKFISH_ROOT = PROJECT_ROOT / "assets" / "stockfish"
 STOCKFISH_BIN_DIR = STOCKFISH_ROOT / "bin"
 
 
+
 def _platform_key() -> str:
     system = platform.system().lower()
 
-    if system.startswith("win"):
+    if system == "windows":
         return "windows"
 
     if system == "darwin":
         return "macos"
 
-    return "linux"
+    if system == "linux":
+        return "linux"
+
+    raise RuntimeError(f"Unsupported operating system: {system}")
 
 
 PLATFORM_KEY = _platform_key()
@@ -34,6 +39,7 @@ def _stockfish_filename() -> str:
         return "stockfish.exe"
 
     return "stockfish"
+
 
 
 STOCKFISH_FILENAME = _stockfish_filename()
@@ -55,4 +61,6 @@ DIFFICULTY_TO_DEPTH = {
     Difficulty.MEDIUM: 10,
     Difficulty.HARD: 18,
 }
+
+
 
