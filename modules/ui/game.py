@@ -391,7 +391,6 @@ def render(manager: GameManager) -> None:
     st.markdown(f"<div class='g-gold g-turnsub'>{turn_sub}</div>", unsafe_allow_html=True)
 
     # ---- mode / difficulty (top-right) ----
-    # (mode-info plaque was removed from the image, so no mode text here)
 
     # ---- player panels (names + captured; clocks are drawn by _render_clocks) ----
     st.markdown(f"<div class='g-gold g-oppname'>{opp_name}</div>", unsafe_allow_html=True)
