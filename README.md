@@ -1,67 +1,242 @@
-# chess-project-
+# Chess Project
 
-
-
-# Shared Enums
-
-## Overview
-
-The `enums` package contains all shared enumerations used throughout the project.
-
-Its purpose is to centralize all fixed values in one place, making the code more readable, maintainable, and less prone to errors caused by hard-coded strings.
+A feature-rich chess application built with **Streamlit** and **Python**, supporting both human-vs-human and human-vs-AI gameplay with a polished visual interface, chess clocks, move history, and bilingual (English/Arabic) support.
 
 ---
 
-## Enums
+## Quick Start
 
-### Difficulty
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+python -m streamlit run app.py
+```
+
+The app opens at `http://localhost:8501`. The Stockfish binary is downloaded automatically on first bot game.
+
+---
+
+## Table of Contents
+
+- [Quick Start](#quick-start)
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [Modules Overview](#modules-overview)
+  - [app.py — Application Entry Point](#apppy--application-entry-point)
+  - [Shared Enums](#shared-enums)
+  - [ChessEngine](#chessengine)
+  - [StockfishEngine](#stockfishengine)
+  - [Stockfish Installer](#stockfish-installer)
+  - [GameState](#gamestate)
+  - [GameManager](#gamemanager)
+  - [CaptureManager](#capturemanager)
+  - [HistoryManager](#historymanager)
+  - [TimerManager](#timermanager)
+  - [BoardState](#boardstate)
+  - [MoveRecord](#moverecord)
+  - [SessionManager](#sessionmanager)
+  - [Shared Constants](#shared-constants)
+  - [UI Screens](#ui-screens)
+  - [Translations / i18n](#translations--i18n)
+- [Architecture & Data Flow](#architecture--data-flow)
+- [Configuration](#configuration)
+
+---
+
+## Features
+
+- **Two game modes:** Play against a friend (hot-seat) or against the Stockfish AI engine.
+- **Three difficulty levels:** Easy (depth 3), Medium (depth 10), Hard (depth 18).
+- **Interactive chess board:** Click-to-select and click-to-move with visual highlights for legal moves and capturable pieces.
+- **Chess clocks:** 10-minute-per-side timer with increment support, live countdown, and timeout detection.
+- **Pawn promotion popup:** Choose Queen, Rook, Bishop, or Knight.
+- **Move history panel:** Scrollable list of moves in Standard Algebraic Notation (SAN).
+- **Game result popup:** Displays the winner and reason (checkmate or timeout) with Play Again / Main Page buttons.
+- **Bilingual interface:** Full English and Arabic (العربية) translations with a toggle button.
+- **Custom theming:** Dark walnut aesthetic with gold accents, serif typography, and full-screen background images.
+- **Stockfish auto-installer:** Downloads and sets up the correct Stockfish binary for the user's platform (Windows, macOS, Linux) directly from GitHub releases.
+- **Session persistence:** Game state is saved to Streamlit's session state for continuity during navigation.
+
+---
+
+## Tech Stack
+
+| Technology | Purpose |
+|---|---|
+| **Python 3.12+** | Core language |
+| **Streamlit** | Web UI framework |
+| **python-chess** | Chess rules, move validation, board representation |
+| **stockfish** | UCI wrapper for the Stockfish chess engine |
+| **requests** | Downloading Stockfish binaries from GitHub |
+
+---
+
+## Project Structure
+
+```
+chess-project-/
+├── app.py                                  # Application entry point
+├── requirements.txt                        # Python dependencies
+├── .gitignore                              # Git ignore rules
+│
+├── .streamlit/
+│   └── config.toml                         # Streamlit theme config (dark walnut)
+│
+├── assets/
+│   ├── images/
+│   │   ├── Game.png                        # Background for the game screen
+│   │   ├── home.png                        # Background for the home screen
+│   │   ├── mode.png                        # Background for the mode select screen
+│   │   ├── pawn.png                        # Background for the promotion popup
+│   │   ├── select.png                      # Background for the difficulty popup
+│   │   └── victory.png                     # Background for the result popup
+│   ├── stockfish/                          # Stockfish binaries (downloaded at runtime)
+│   └── icons/ & flags/                     # Additional static assets
+│
+├── translations/
+│   ├── i18n.py                             # Translation lookup and normalization
+│   └── strings.py                          # Legacy string constants
+│
+└── modules/
+    ├── chess_engine/
+    │   ├── __init__.py
+    │   └── ChessEngine.py                  # Wrapper around python-chess
+    │
+    ├── bot/
+    │   ├── __init__.py
+    │   ├── stockfish_engine.py             # Stockfish wrapper (AI opponent)
+    │   └── stockfish_installer.py          # Auto-download and setup of Stockfish
+    │
+    ├── game/
+    │   ├── __init__.py
+    │   ├── game_manager.py                 # Central game controller
+    │   ├── game_state.py                   # Dataclass for game metadata
+    │   ├── capture_manager.py              # Tracks captured pieces
+    │   ├── history_manager.py              # Move history with navigation
+    │   └── timer_manager.py                # Chess clock management
+    │
+    ├── models/
+    │   ├── __init__.py
+    │   ├── board_state.py                  # FEN + turn + move count dataclass
+    │   └── move_record.py                  # Single move metadata dataclass
+    │
+    ├── session/
+    │   ├── __init__.py                     # Session dataclass
+    │   └── session_manager.py              # Streamlit session wrapper
+    │
+    ├── shared/
+    │   ├── constants/
+    │   │   ├── board_constants.py          # Board dimensions, FEN, promotion pieces
+    │   │   ├── session_constants.py        # Session key definitions
+    │   │   ├── stockfish_constants.py      # Paths, platform detection, depth mapping
+    │   │   └── ui_constants.py             # Page title, icon, layout, messages
+    │   ├── enums/
+    │   │   ├── difficulty.py               # EASY, MEDIUM, HARD
+    │   │   ├── game_end_reason.py          # CHECKMATE, STALEMATE, etc.
+    │   │   ├── game_mode.py                # FRIEND, BOT
+    │   │   ├── game_status.py              # NOT_STARTED, RUNNING, FINISHED
+    │   │   └── player_color.py             # WHITE, BLACK
+    │   └── helpers/
+    │       └── display.py                  # Enum-to-label formatter
+    │
+    └── ui/
+        ├── home.py                         # Home screen with "Begin Game" button
+        ├── mode_select.py                  # Mode selection (Friend / AI)
+        ├── difficulty.py                   # Difficulty selection popup
+        ├── game.py                         # Main game screen (board, clocks, history)
+        ├── promotion.py                    # Pawn promotion popup
+        ├── result.py                       # Game result popup
+        └── history.py                      # (reserved)
+```
+
+---
+
+## Modules Overview
+
+### app.py — Application Entry Point
+
+**File:** `app.py`
+
+#### Overview
+
+The main entry point that configures the Streamlit page and routes between screens using `st.session_state.screen`.
+
+#### Responsibilities
+
+- Configuring the Streamlit page (title, icon, layout).
+- Initializing session defaults (screen, language, mode, difficulty).
+- Routing between screens: `home`, `mode`, `difficulty`, `game`.
+- Managing the `GameManager` singleton.
+- Preloading the Stockfish engine if available from a previous session.
+
+#### Screen Flow
+
+```
+home → mode → difficulty (if bot) → game
+```
+
+#### Design Decisions
+
+- Uses a `get_manager()` function to lazily initialize and reuse the `GameManager` across reruns.
+- Session defaults are initialized once using guard clauses (`if "screen" not in st.session_state`).
+
+---
+
+### Shared Enums
+
+**Location:** `modules/shared/enums/`
+
+#### Overview
+
+The `enums` package contains all shared enumerations used throughout the project. Its purpose is to centralize all fixed values in one place, making the code more readable, maintainable, and less prone to errors caused by hard-coded strings.
+
+#### Enums
+
+##### Difficulty
 
 Represents the available bot difficulty levels.
 
-Values:
-- EASY
-- MEDIUM
-- HARD
+- `EASY`
+- `MEDIUM`
+- `HARD`
 
----
-
-### GameMode
+##### GameMode
 
 Represents the available game modes.
 
-Values:
-- FRIEND
-- BOT
+- `FRIEND` — play against another human
+- `BOT` — play against the AI
 
---------------------------
---------------------------
-
-### GameStatus
+##### GameStatus
 
 Represents the lifecycle state of the current game.
 
-Values:
-- NOT_STARTED
-- RUNNING
-- FINISHED
+- `NOT_STARTED`
+- `RUNNING`
+- `FINISHED`
 
-> Note:
-> Chess conditions such as Check, Checkmate, Stalemate, and Draw are **not** part of this enum.
-> These are handled by the Chess Engine module.
-
----
-
-### PlayerColor
+##### PlayerColor
 
 Represents the two player colors in chess.
 
-Values:
-- WHITE
-- BLACK
+- `WHITE`
+- `BLACK`
 
----
+##### GameEndReason
 
-## Design Principles
+Represents the possible reasons why a chess game ended.
+
+- `CHECKMATE`
+- `STALEMATE`
+- `INSUFFICIENT_MATERIAL`
+- `FIFTY_MOVE_RULE`
+- `THREEFOLD_REPETITION`
+- `UNKNOWN`
+
+#### Design Principles
 
 - Single Responsibility Principle (SRP)
 - Shared across all project modules
@@ -69,242 +244,23 @@ Values:
 - No dependencies on other modules
 - Used to avoid hard-coded string values
 
----
+#### Dependencies
 
-## Dependencies
-
-This package has **no dependencies**.
-
-It is the lowest dependency layer in the project architecture.
-
-----------------------------------
-----------------------------
-
-
-# Game Module
-
-## Overview
-
-The `game` module is responsible for managing the overall state of a chess match.
-
-At this stage, the module contains the `GameState` class, which represents the current state of the game by storing all required game-related information.
-
-Game logic such as move validation, check detection, and board manipulation is **not** handled here. These responsibilities belong to the Chess Engine module.
+This package has **no dependencies**. It is the lowest dependency layer in the project architecture.
 
 ---
 
-## Components
+### ChessEngine
 
-### GameState
+**File:** `modules/chess_engine/ChessEngine.py`
 
-Represents the current state of an active chess game.
+#### Overview
 
-It stores:
+`ChessEngine` is the core chess logic module of the project. It acts as a wrapper around the **python-chess** library and is the only component in the project that communicates directly with it.
 
-- Game mode (Friend / Bot)
-- Game status
-- Current player's turn
-- Bot difficulty (if applicable)
-- Winner (if the game has ended)
+The engine is responsible for managing the chessboard, validating moves, executing moves, and providing board information. It contains no UI logic, game flow management, session handling, timers, or AI decision-making.
 
-The `GameState` class acts as a **data container** and does not implement any game logic.
-
----
-
-## Design Decisions
-
-### Why DataClass?
-
-`GameState` is implemented using Python's `@dataclass` because its primary responsibility is storing data rather than executing business logic.
-
-Using a dataclass provides:
-
-- Cleaner code
-- Automatic constructor generation
-- Better readability
-- Easier maintenance
-
----
-
-## Responsibilities
-
-The GameState class is responsible for:
-
-- Storing the current game information.
-- Providing a single source of truth for the match state.
-- Sharing game data between different modules.
-
----
-
-## Not Responsible For
-
-The GameState class does **not**:
-
-- Validate chess moves.
-- Manage the chess board.
-- Detect Check or Checkmate.
-- Control the game flow.
-- Communicate with the Bot.
-
-These responsibilities belong to other modules in the project.
-
----
-
-## Dependencies
-
-GameState depends only on:
-
-- Shared Enums
-
-It does not depend on:
-
-- Chess Engine
-- Bot
-- Session
-- UI
-
-This makes it one of the lowest dependency classes in the project architecture.
-
----
-
-## Design Principles
-
-- Single Responsibility Principle (SRP)
-- Low Coupling
-- High Readability
-- Data-Oriented Design
-- Separation of Concerns
-
-------------------------
--------------------------
-
-
-# Game Module
-
-## Overview
-
-The `game` module is responsible for managing the overall state of a chess match.
-
-Currently, this module contains the `GameState` class, which represents the current state of the game by storing all required game-related information.
-
-Game logic such as move validation, move execution, check detection, and board manipulation is **not** handled here. These responsibilities belong to the Chess Engine module.
-
----
-
-## Components
-
-### GameState
-
-Represents the current state of a chess match.
-
-It stores:
-
-- Game mode (Friend / Bot)
-- Game status
-- Current player's turn
-- Bot difficulty (if applicable)
-- Winner (if the game has ended)
-
-`GameState` acts as a **data container** and does not implement any game logic.
-
----
-
-## Design Decisions
-
-### Why DataClass?
-
-`GameState` is implemented using Python's `@dataclass` because its primary responsibility is storing data rather than executing business logic.
-
-Using a dataclass provides:
-
-- Cleaner code
-- Automatic constructor generation
-- Better readability
-- Easier maintenance
-
----
-
-## Responsibilities
-
-The `GameState` class is responsible for:
-
-- Storing the current game information.
-- Providing a single source of truth for the match state.
-- Sharing game data between different modules.
-
----
-
-## Not Responsible For
-
-The `GameState` class does **not**:
-
-- Validate chess moves.
-- Execute chess moves.
-- Manage the chess board.
-- Detect Check, Checkmate, or Stalemate.
-- Control the game flow.
-- Communicate with the Bot.
-- Manage the user interface.
-
-These responsibilities belong to other modules in the project.
-
----
-
-## Dependencies
-
-`GameState` depends only on:
-
-- Shared Enums
-
-It does **not** depend on:
-
-- Chess Engine
-- Bot
-- Session
-- UI
-
-This makes it one of the lowest dependency classes in the project architecture and allows it to be safely reused by higher-level modules without introducing unnecessary coupling.
-
----
-
-## Design Principles
-
-- Single Responsibility Principle (SRP)
-- Low Coupling
-- High Readability
-- Data-Oriented Design
-- Separation of Concerns
-
----
-
-## Future Extensions
-
-As the project grows, additional classes such as `GameManager` will be added to this module.
-
-`GameState` will remain responsible only for storing the current match data, while all game management logic will be implemented in dedicated classes.
-
-
----------------------------
------------------------------
-
-
-# ChessEngine
-
-## Overview
-
-`ChessEngine` is the core chess logic module of the project.
-
-It acts as a wrapper around the **python-chess** library and is the only component in the project that communicates directly with it.
-
-The engine is responsible for managing the chessboard, validating moves, executing moves, and providing board information.
-
-It does **not** contain any UI logic, game flow management, session handling, timers, or AI decision-making.
-
----
-
-# Responsibilities
-
-The ChessEngine is responsible for:
+#### Responsibilities
 
 - Initializing and resetting the chess board.
 - Validating legal moves.
@@ -312,85 +268,44 @@ The ChessEngine is responsible for:
 - Undoing moves.
 - Tracking move history (SAN).
 - Providing board information.
-- Detecting special chess rules.
-- Detecting game-ending conditions.
-- Providing board snapshots.
+- Detecting special chess rules (castling, en passant, promotion).
+- Detecting game-ending conditions (checkmate, stalemate, draw).
+- Providing board snapshots via `BoardState`.
 
----
+#### Not Responsible For
 
-# Not Responsible For
-
-The ChessEngine intentionally does **not** handle:
-
-- User Interface
-- Streamlit components
+- User Interface / Streamlit components
 - Game lifecycle
 - Player management
 - Session State
 - AI logic
 - Timers
 - Move history presentation
-- Captured pieces
+- Captured pieces tracking
 
-Those responsibilities belong to other modules.
+#### Public API
 
----
-
-# Architecture
-
-```
-                UI
-                 │
-                 ▼
-          GameManager
-                 │
-                 ▼
-           ChessEngine
-                 │
-                 ▼
-          python-chess
-```
-
-Only `ChessEngine` communicates with the external chess library.
-
-This keeps the rest of the project independent from third-party APIs.
-
----
-
-# Public API
-
-## Game Management
-
+**Game Management:**
 - `reset()`
 
----
-
-## Move Validation
-
+**Move Validation:**
 - `get_legal_moves()`
 - `get_legal_targets()`
 - `is_legal_move()`
 
----
-
-## Move Execution
-
+**Move Execution:**
 - `make_move()`
+- `push_san()`
+- `undo_last_move()`
 
----
-
-## Board Queries
-
+**Board Queries:**
 - `get_piece_at()`
 - `get_piece_symbol_at()`
 - `get_piece_type_at()`
 - `get_piece_color_at()`
 - `get_piece_map()`
 
----
-
-## Game Status
-
+**Game Status:**
 - `is_check()`
 - `is_checkmate()`
 - `is_stalemate()`
@@ -401,231 +316,83 @@ This keeps the rest of the project independent from third-party APIs.
 - `is_repetition()`
 - `result()`
 - `outcome_reason()`
+- `is_draw()`
 - `is_pawn_promotion_move()`
 
----
-
-## Board State
-
+**Board State:**
 - `get_turn_color()`
 - `get_fen()`
 - `set_fen()`
 - `get_board_state()`
+- `get_board()`
 
----
-
-## Move History
-
+**Move History:**
 - `get_last_san()`
 - `get_san_history()`
+- `get_move_count()`
 
----
-
-## Move Utilities
-
+**Move Utilities:**
 - `get_san()`
-- `push_san()`
-- `undo_last_move()`
 
----
-
-## Special Moves
-
+**Special Moves:**
 - `is_castling_move()`
 - `is_en_passant_move()`
 
----
-
-## UCI Utilities
-
+**UCI Utilities:**
 - `parse_uci()`
 - `uci_to_from_square()`
 - `uci_to_to_square()`
 - `uci_get_promotion()`
 
----
-
-## Board Utilities
-
+**Board Utilities:**
 - `get_last_move()`
 
----
-
-# Internal Design
+#### Internal Design
 
 Internally the engine stores:
-
 - A `python-chess Board`
-- SAN move history
-- Board state information
+- SAN move history (`_san_history: List[str]`)
 
-Move execution always follows this sequence:
-
-```
-Validate Move
-      │
-      ▼
-Generate SAN
-      │
-      ▼
-Push Move
-      │
-      ▼
-Update SAN History
-```
-
----
-
-# Design Decisions
-
-## Wrapper Pattern
-
-The project never imports `python-chess` outside this module.
-
-This isolates external dependencies and makes future replacements significantly easier.
-
----
-
-## BoardState Model
-
-Instead of returning dictionaries, the engine returns a dedicated `BoardState` model.
-
-Advantages:
-
-- Better type safety
-- Easier maintenance
-- Cleaner APIs
-- IDE auto-completion
-- Clear project architecture
-
----
-
-## GameEndReason Enum
-
-The engine converts `python-chess` termination values into project-specific enums.
-
-Advantages:
-
-- Removes dependency on library enums.
-- Keeps the rest of the project independent.
-- Makes future engine replacement easier.
-
----
-
-## SAN History
-
-The engine stores SAN notation separately because `python-chess` stores only `Move` objects inside `move_stack`.
-
----
-
-# Data Flow
+Move execution follows this sequence:
 
 ```
-UI
-
-↓
-
-GameManager
-
-↓
-
-ChessEngine
-
-↓
-
-python-chess
-
-↓
-
-Board
+Validate Move → Generate SAN → Push Move → Update SAN History
 ```
 
----
+#### Design Decisions
 
-# Dependencies
+**Wrapper Pattern:** The project never imports `python-chess` outside this module. This isolates external dependencies and makes future replacements significantly easier.
 
-External:
+**BoardState Model:** Instead of returning dictionaries, the engine returns a dedicated `BoardState` model for better type safety, IDE auto-completion, and cleaner architecture.
 
-- python-chess
+**GameEndReason Enum:** The engine converts `python-chess` termination values into project-specific enums, keeping the rest of the project independent from library enums.
 
-Internal:
+**SAN History:** The engine stores SAN notation separately because `python-chess` stores only `Move` objects inside `move_stack`.
 
-- PlayerColor
-- GameEndReason
-- BoardState
+#### Architecture Position
 
----
-
-# Usage Example
-
-```python
-engine = ChessEngine()
-
-engine.make_move(
-    chess.E2,
-    chess.E4,
-)
-
-print(engine.get_turn_color())
-
-print(engine.get_board_state())
-
-print(engine.is_check())
+```
+UI → GameManager → ChessEngine → python-chess → Board
 ```
 
----
+#### Dependencies
 
-# Future Extensions
-
-The current design allows adding:
-
-- PGN Export
-- PGN Import
-- Board Evaluation
-- Move Analysis
-- Opening Detection
-- Move Suggestions
-- Chess960 Support
-
-without changing the public API.
+- **External:** `python-chess`
+- **Internal:** `PlayerColor`, `GameEndReason`, `BoardState`
 
 ---
 
-# Notes
+### StockfishEngine
 
-The ChessEngine is designed according to the following principles:
+**File:** `modules/bot/stockfish_engine.py`
 
-- Single Responsibility Principle (SRP)
-- Separation of Concerns
-- Wrapper Pattern
-- Small Public API
-- High Cohesion
-- Low Coupling
+#### Overview
 
-The engine should remain focused exclusively on chess logic.
-
-All higher-level application logic should be implemented in `GameManager`.
-
-
-
------------------------
-----------------------
-
-# Stockfish Engine Module
-
-## Overview
-
-The `StockfishEngine` module is responsible for all communication with the external **Stockfish** chess engine.
-
-It acts as a wrapper around the `stockfish` Python package, providing a clean and project-independent API for interacting with the chess engine.
+The `StockfishEngine` module is responsible for all communication with the external **Stockfish** chess engine. It acts as a wrapper around the `stockfish` Python package, providing a clean and project-independent API for interacting with the chess engine.
 
 The rest of the project never communicates with the Stockfish library directly.
 
----
-
-# Responsibilities
-
-The `StockfishEngine` is responsible for:
+#### Responsibilities
 
 - Initializing the Stockfish engine.
 - Managing the engine availability.
@@ -635,442 +402,401 @@ The `StockfishEngine` is responsible for:
 - Evaluating chess positions.
 - Resetting the engine state.
 
----
-
-# Out of Scope
-
-This module **does NOT** handle:
-
-- Chess rules.
-- Move validation.
-- Game lifecycle.
-- Player turns.
-- Game history.
-- Timers.
-- UI logic.
-- Session management.
-
-Those responsibilities belong to other modules.
-
----
-
-# Architecture
-
-```
-                GameManager
-                     │
-                     ▼
-             StockfishEngine
-                     │
-                     ▼
-              Stockfish Library
-                     │
-                     ▼
-             Stockfish Executable
-```
-
-Only `StockfishEngine` communicates with the external Stockfish engine.
-
----
-
-# Project Position
-
-```
-UI
- │
- ▼
-GameManager
- ├───────────────┐
- │               │
- ▼               ▼
-ChessEngine   StockfishEngine
-```
-
-The GameManager requests moves from the bot.
-
-The bot never communicates directly with the UI.
-
----
-
-# Dependencies
-
-- stockfish
-- logging
-- typing
-
-Project modules:
-
-- Difficulty
-- stockfish_constants
-
----
-
-# Public API
-
-## Engine Configuration
-
-### set_difficulty()
-
-Updates the bot difficulty and applies the corresponding search depth to the engine.
-
----
-
-## Position Management
-
-### set_fen()
-
-Updates the current board position inside Stockfish using a FEN string.
-
----
-
-## Move Generation
-
-### get_best_move()
-
-Returns the strongest move for the given board position.
-
-Returned value:
-
-- UCI move string
-- or None if unavailable.
-
-Example:
-
-```
-e2e4
-```
-
----
-
-### get_evaluation()
-
-Returns the engine evaluation.
-
-Typical result:
-
-```python
-{
-    "type": "cp",
-    "value": 34
-}
-```
-
-or
-
-```python
-{
-    "type": "mate",
-    "value": -2
-}
-```
-
----
-
-## Engine Status
-
-### is_available()
-
-Returns whether the engine initialized successfully.
-
----
-
-### get_difficulty()
-
-Returns the current difficulty level.
-
----
-
-### get_depth()
-
-Returns the search depth associated with the current difficulty.
-
----
-
-## Engine Management
-
-### reset()
-
-Restores the engine to the standard chess starting position.
-
----
-
-# Internal API
-
-## _init_engine()
-
-Initializes the Stockfish engine.
-
-This method is private and should never be called outside the class.
-
----
-
-# Difficulty Mapping
-
-Difficulty levels are mapped to Stockfish search depth using:
-
-```
-DIFFICULTY_TO_DEPTH
-```
-
-Example:
+#### Not Responsible For
+
+- Chess rules or move validation
+- Game lifecycle
+- Player turns
+- Game history
+- Timers
+- UI logic
+- Session management
+
+#### Public API
+
+- `set_difficulty(difficulty)` — updates bot difficulty and applies corresponding search depth.
+- `set_fen(fen)` — updates the current board position inside Stockfish.
+- `get_best_move(fen)` — returns the strongest move in UCI notation (or `None` if unavailable).
+- `get_evaluation(fen)` — returns the engine evaluation dictionary.
+- `is_available()` — returns whether the engine initialized successfully.
+- `get_difficulty()` — returns the current difficulty level.
+- `get_depth()` — returns the search depth associated with the current difficulty.
+- `reset()` — restores the engine to the standard starting position.
+
+#### Difficulty Mapping
 
 | Difficulty | Depth |
-|------------|------:|
-| Easy | 5 |
+|---|---|
+| Easy | 3 |
 | Medium | 10 |
 | Hard | 18 |
 
-The mapping is defined in:
+#### Error Handling
+
+Every engine interaction is wrapped in `try/except`. Unexpected failures never crash the application. Instead, the error is logged and methods safely return `None` or exit.
+
+#### Fallback Mode
+
+When Stockfish is unavailable, `get_best_move()` falls back to generating a random legal move using `python-chess`.
+
+#### Design Decisions
+
+- **Wrapper Pattern:** The project never exposes the Stockfish library outside this module, enabling loose coupling, easier testing, and cleaner architecture.
+- **Single Responsibility Principle:** The class only manages communication with Stockfish, never game state, chess rules, UI, timers, or sessions.
+- **Encapsulation:** The Stockfish instance is private; external modules interact only through public methods.
+- **Guard Clauses:** Methods return early when the engine is unavailable, keeping code simple and avoiding unnecessary nesting.
+- **DRY Principle:** Board updates are centralized in `set_fen()`; other methods reuse it instead of duplicating logic.
+
+#### Architecture Position
 
 ```
-modules/shared/constants/stockfish_constants.py
+UI → GameManager → StockfishEngine → Stockfish Library → Stockfish Executable
 ```
 
+#### Dependencies
+
+- **External:** `stockfish`, `logging`
+- **Internal:** `Difficulty`, `stockfish_constants`
+
 ---
 
-# Error Handling
+### Stockfish Installer
 
-Every engine interaction is wrapped in:
+**File:** `modules/bot/stockfish_installer.py`
+
+#### Overview
+
+Automatically downloads and installs the correct Stockfish binary for the user's platform from the latest GitHub release.
+
+#### Responsibilities
+
+- Detecting the operating system (Windows, macOS, Linux) and architecture (x86, ARM).
+- Selecting the optimal asset from the latest Stockfish GitHub release.
+- Downloading and extracting archives (`.zip`, `.tar`, `.tar.gz`, `.tgz`, `.tar.xz`).
+- Copying the binary to the project's `assets/stockfish/bin/<platform>/` directory.
+- Setting executable permissions on Linux/macOS.
+- Caching installation metadata to avoid repeated downloads.
+- Finding and reusing project-local or legacy bundled binaries.
+
+#### Flow
+
+1. Check if binary already exists at `STOCKFISH_PATH`.
+2. Look for a project-local binary in `assets/stockfish/`.
+3. Look for a legacy bundled binary.
+4. If none found, fetch the latest release from GitHub API.
+5. Select the best matching asset for the current platform/architecture.
+6. Download, extract, and copy the binary.
+7. Save installation metadata to `installed_release.json`.
+
+---
+
+### GameState
+
+**File:** `modules/game/game_state.py`
+
+#### Overview
+
+`GameState` represents the current state of a chess match. It acts as a **data container** and does not implement any game logic.
+
+#### Fields
+
+| Field | Type | Description |
+|---|---|---|
+| `game_mode` | `GameMode` | FRIEND or BOT |
+| `status` | `GameStatus` | NOT_STARTED, RUNNING, or FINISHED |
+| `difficulty` | `Optional[Difficulty]` | Bot difficulty (None for friend mode) |
+| `board_state` | `Optional[BoardState]` | Snapshot of the board at the current state |
+| `winner` | `Optional[PlayerColor]` | Winning player, if game has ended |
+| `end_reason` | `Optional[GameEndReason]` | Reason the game ended |
+
+#### Design Decisions
+
+**Why DataClass?** `GameState` is implemented using Python's `@dataclass` because its primary responsibility is storing data rather than executing business logic. This provides cleaner code, automatic constructor generation, and better readability.
+
+#### Responsibilities
+
+- Storing the current game information.
+- Providing a single source of truth for the match state.
+- Sharing game data between different modules.
+
+#### Not Responsible For
+
+- Validating or executing chess moves.
+- Managing the chess board.
+- Detecting Check, Checkmate, or Stalemate.
+- Controlling the game flow.
+- Communicating with the Bot.
+- Managing the user interface.
+
+#### Dependencies
+
+- `Shared Enums` only.
+- Does **not** depend on ChessEngine, Bot, Session, or UI.
+- One of the lowest dependency classes in the project.
+
+#### Design Principles
+
+- Single Responsibility Principle (SRP)
+- Low Coupling
+- High Readability
+- Data-Oriented Design
+- Separation of Concerns
+
+---
+
+### GameManager
+
+**File:** `modules/game/game_manager.py`
+
+#### Overview
+
+The `GameManager` is the central controller of the chess application. It acts as the **orchestration layer** between ChessEngine, GameState, SessionManager, and the UI layer.
+
+It does NOT implement chess rules itself, but delegates all rule logic to the ChessEngine.
+
+#### Responsibilities
+
+- Managing the lifecycle of a chess game (start, restart, end, load).
+- Coordinating moves between UI and ChessEngine.
+- Automatically triggering AI moves in BOT mode.
+- Handling undo logic (undoing both bot and player moves in bot mode).
+- Maintaining and updating GameState.
+- Persisting state using SessionManager.
+- Synchronizing game status (running, finished, winner, end reason).
+
+#### Not Responsible For
+
+- Implementing chess rules.
+- Containing UI logic (Streamlit).
+- Directly manipulating `st.session_state`.
+- Defining game data structures.
+
+#### Public API
+
+**Game Lifecycle:**
+- `start_game(game_mode, difficulty)` — resets engine, creates GameState, syncs session.
+- `restart_game()` — restarts with the same mode and difficulty.
+- `end_game(winner)` — marks game as finished, records winner.
+- `load_game()` — restores the most recently saved game from session.
+
+**Gameplay:**
+- `make_move(from_square, to_square, promotion)` — executes a move (and bot response in BOT mode). Returns number of moves executed.
+- `undo_last_move()` — undoes the last move(s). Returns success boolean.
+
+**Engine Facade:**
+- `get_board()`, `get_board_state()`, `get_turn()`, `get_move_history()`
+- `get_result()`, `get_game_end_reason()`
+- `is_game_over()`, `is_check()`, `is_checkmate()`, `is_stalemate()`, `is_draw()`
+
+**Getters:**
+- `get_game_state()` — returns the active GameState instance.
+
+#### Move Flow (BOT Mode)
 
 ```
-try / except
+Player Move → GameManager.make_move()
+    → ChessEngine.make_move() (player move)
+    → _update_game_status()
+    → StockfishEngine.get_best_move() (bot response)
+    → ChessEngine.make_move() (bot move)
+    → _sync_session()
 ```
 
-Unexpected failures never crash the application.
-
-Instead:
-
-- the error is logged,
-- the engine remains usable,
-- methods safely return `None` or exit.
-
----
-
-# Design Decisions
-
-## Wrapper Pattern
-
-The project never exposes the Stockfish library outside this module.
-
-Advantages:
-
-- loose coupling
-- easier testing
-- easier replacement
-- cleaner architecture
-
----
-
-## Single Responsibility Principle
-
-The class only manages communication with Stockfish.
-
-It never manages:
-
-- game state
-- chess rules
-- UI
-- timers
-- sessions
-
----
-
-## Encapsulation
-
-The Stockfish instance is private.
-
-External modules interact only through public methods.
-
----
-
-## Guard Clauses
-
-Methods return early when the engine is unavailable.
-
-Example:
-
-```python
-if not self._available or self._engine is None:
-    return
-```
-
-This keeps the code simple and avoids unnecessary nesting.
-
----
-
-## DRY Principle
-
-Board updates are centralized in:
+#### Undo Flow (BOT Mode)
 
 ```
-set_fen()
+Undo → ChessEngine.undo_last_move() (undo bot)
+     → ChessEngine.undo_last_move() (undo player)
+     → _update_game_status()
+     → _sync_session()
 ```
 
-Other methods reuse it instead of duplicating logic.
-
----
-
-# Typical Flow
+#### Architecture Position
 
 ```
-GameManager
-
-      │
-
-      ▼
-
-get_fen()
-
-      │
-
-      ▼
-
-StockfishEngine.set_fen()
-
-      │
-
-      ▼
-
-StockfishEngine.get_best_move()
-
-      │
-
-      ▼
-
-UCI Move
-
-      │
-
-      ▼
-
-ChessEngine.make_move()
+UI (Streamlit) → GameManager → ChessEngine
+                             → StockfishEngine
+                             → GameState
+                             → SessionManager
 ```
 
----
+#### Dependencies
 
-# Notes
-
-- This module assumes all incoming FEN strings are valid.
-- FEN validation is the responsibility of `ChessEngine`.
-- The engine does not store game history.
-- The engine does not own the board state.
-- The engine only evaluates positions and generates moves.
+- ChessEngine, StockfishEngine, GameState, SessionManager
+- All shared enums
+- BoardState model
 
 ---
 
-# Future Extensions
+### CaptureManager
 
-Possible future improvements include:
+**File:** `modules/game/capture_manager.py`
 
-- MultiPV support.
-- Move ordering.
-- Engine hash configuration.
-- Thread configuration.
-- Skill level support.
-- Engine benchmarking.
-- Move analysis mode.
+#### Overview
 
-The current architecture allows these features to be added without modifying the rest of the project.
+Manages captured chess pieces for both players. Records captured piece symbols and provides query operations.
 
----
+#### Public API
 
-# Summary
-
-The `StockfishEngine` module provides a clean abstraction over the Stockfish engine.
-
-It isolates all engine-specific functionality behind a stable API, allowing the rest of the project to remain independent from the underlying chess engine implementation.
-
-This design improves maintainability, readability, extensibility, and long-term project scalability.
-
-
------------------------------
-----------------------------
-
-
-#  Session Manager Module
-
-##  Overview
-
-The `SessionManager` module provides a clean and centralized wrapper around Streamlit's `st.session_state`.
-
-It decouples application logic from Streamlit, ensuring that the rest of the system does not directly depend on UI framework internals.
-
-This improves:
-- Maintainability
-- Testability
-- Code clarity
-- Architecture separation
-- Scalability
+- `record_capture(captured_by, captured_piece_symbol)` — record a captured piece.
+- `get_captured_by(player)` — returns a defensive copy of captured pieces for a player.
+- `get_all_captured()` — returns captured pieces for both players.
+- `get_capture_count(player)` — returns the number of pieces captured by a player.
+- `get_total_captures()` — returns combined capture count.
+- `clear()` — resets all recorded captures.
 
 ---
 
-## 🎯 Responsibility
+### HistoryManager
 
-The SessionManager is responsible for **session state management only**, including:
+**File:** `modules/game/history_manager.py`
 
-- Storing values in session state
-- Retrieving stored values safely
-- Checking whether keys exist
-- Removing specific session entries
-- Clearing the entire session state
+#### Overview
 
----
+Manages the move history of a chess game with navigation support for moving forward and backward through recorded moves.
 
-## ❌ What this module does NOT do
+#### Public API
 
-- Does NOT contain any game logic
-- Does NOT interact with ChessEngine
-- Does NOT handle UI rendering
-- Does NOT manage business rules
-
----
-
-##  Architecture Role
-
-The SessionManager acts as the lowest persistence layer in the system.
-
-
-UI (Streamlit)
-↓
-GameManager
-↓
-SessionManager
-↓
-st.session_state
-
+- `record_move(record)` — records a move, discarding future moves if not at the end.
+- `undo_last()` — removes and returns the last recorded move.
+- `get_history()` — returns a copy of all recorded moves.
+- `get_last_move()` — returns the most recent move.
+- `get_move_at(index)` — returns the move at a specific index.
+- `get_move_count()` — returns the total number of recorded moves.
+- `get_current_index()` — returns the current navigation position.
+- `can_go_forward()` / `can_go_backward()` — navigation availability checks.
+- `go_forward()` / `go_backward()` — navigate through history.
+- `clear()` — resets the history.
 
 ---
 
-##  Data Flow
+### TimerManager
 
+**File:** `modules/game/timer_manager.py`
 
-GameManager updates state
-↓
-SessionManager stores state
-↓
-Streamlit reruns script
-↓
-UI reflects updated game status
+#### Overview
 
+Manages chess clocks for both players with configurable time controls.
+
+#### Public API
+
+**Time Control:**
+- `set_time_control(initial_seconds, increment_seconds)`
+- `get_initial_time()`, `get_increment()`
+
+**Clock Controls:**
+- `start(color)` — starts the clock for the specified player.
+- `switch()` — switches the active clock to the opposing player (adds increment).
+- `pause()` — pauses the active clock.
+- `resume()` — resumes the active clock.
+- `stop()` — stops the timer entirely.
+
+**Queries:**
+- `get_remaining_time(color)` — returns remaining time in seconds (accounts for active running time).
+- `get_active_color()` — returns the player whose clock is active.
+- `is_running()` — returns whether the timer is active.
+- `is_time_up()` — returns the player whose time has expired, or None.
+
+**Management:**
+- `reset()` — resets both clocks to the configured initial time.
+
+#### Implementation Details
+
+- Uses `time.monotonic()` for accurate elapsed time measurement.
+- Elapsed time is deducted from the active player's clock on switch, pause, and stop.
+- Increment is added after each completed move during `switch()`.
+- `get_remaining_time()` accounts for currently running time in real-time.
 
 ---
 
-##  Why this module exists
+### BoardState
 
-Without SessionManager:
-- Streamlit dependency would be scattered across the codebase ❌
-- Session state becomes hard to manage ❌
-- Tight coupling between UI and logic ❌
+**File:** `modules/models/board_state.py`
 
-With SessionManager:
-- Centralized state management ✔
-- Clean separation of concerns ✔
-- Easier debugging and testing ✔
-- More scalable architecture ✔
+#### Overview
+
+A `@dataclass(slots=True)` representing the current state of the chess board.
+
+#### Fields
+
+| Field | Type | Description |
+|---|---|---|
+| `fen` | `str` | Board position in FEN notation |
+| `turn` | `PlayerColor` | WHITE or BLACK |
+| `move_count` | `int` | Number of moves played |
+| `fullmove_number` | `int` | Fullmove counter (starts at 1, increments after Black's move) |
 
 ---
 
-##  Design Principles
+### MoveRecord
+
+**File:** `modules/models/move_record.py`
+
+#### Overview
+
+A `@dataclass(slots=True)` representing a single move with full contextual metadata.
+
+#### Fields
+
+| Field | Type | Description |
+|---|---|---|
+| `move_number` | `int` | Sequential move number |
+| `san` | `str` | Move in Standard Algebraic Notation |
+| `from_square` | `int` | Source square index |
+| `to_square` | `int` | Destination square index |
+| `piece_symbol` | `str` | FEN symbol of the moved piece |
+| `captured_piece_symbol` | `Optional[str]` | FEN symbol of captured piece (if any) |
+| `is_check` | `bool` | Whether the move gives check |
+| `is_checkmate` | `bool` | Whether the move delivers checkmate |
+| `is_castling` | `bool` | Whether the move is a castle |
+| `is_en_passant` | `bool` | Whether the move is en passant |
+| `is_promotion` | `bool` | Whether the move is a promotion |
+| `promotion_piece_symbol` | `Optional[str]` | Promoted piece symbol (if promotion) |
+
+---
+
+### SessionManager
+
+**File:** `modules/session/session_manager.py`
+
+#### Overview
+
+The `SessionManager` module provides a clean and centralized wrapper around Streamlit's `st.session_state`. It decouples application logic from Streamlit, ensuring that the rest of the system does not directly depend on UI framework internals.
+
+#### Responsibilities
+
+- Storing values in session state.
+- Retrieving stored values safely.
+- Checking whether keys exist.
+- Removing specific session entries.
+- Clearing the entire session state.
+
+#### Not Responsible For
+
+- Game logic
+- ChessEngine interaction
+- UI rendering
+- Business rules
+
+#### Public API
+
+- `set(key, value)` — store a value in the current session.
+- `get(key, default=None)` — retrieve a value from the current session.
+- `contains(key)` — check whether a session key exists.
+- `remove(key)` — remove a value from the current session.
+- `clear()` — clear the entire session state.
+
+#### Why This Module Exists
+
+Without SessionManager, Streamlit dependency would be scattered across the codebase, making session state hard to manage and creating tight coupling between UI and logic. With SessionManager, state management is centralized with clean separation of concerns.
+
+#### Architecture Position
+
+```
+GameManager → SessionManager → st.session_state
+```
+
+#### Design Principles
 
 - Single Responsibility Principle (SRP)
 - Separation of Concerns (SoC)
@@ -1079,104 +805,230 @@ With SessionManager:
 
 ---
 
-## ✅ Summary
+### Shared Constants
 
-SessionManager is a lightweight abstraction over Streamlit session state that ensures a  clean, scalable, and maintainable architecture for the Chess Project.
- 
------------------------------
------------------------------
+**Location:** `modules/shared/constants/`
 
-# ♟️ Game Manager Module
+#### Board Constants (`board_constants.py`)
 
-##  Overview
+| Constant | Value | Description |
+|---|---|---|
+| `BOARD_FILES_COUNT` | `8` | Number of files |
+| `BOARD_RANKS_COUNT` | `8` | Number of ranks |
+| `BOARD_SQUARE_COUNT` | `64` | Total squares |
+| `FILE_NAMES` | `("a","b","c","d","e","f","g","h")` | File labels |
+| `RANK_NAMES` | `("1","2","3","4","5","6","7","8")` | Rank labels |
+| `STARTING_FEN` | `chess.STARTING_FEN` | Starting position FEN |
+| `PROMOTION_PIECES` | `(QUEEN, ROOK, BISHOP, KNIGHT)` | Promotion choices |
 
-The `GameManager` is the central controller of the chess application.
+#### Session Constants (`session_constants.py`)
 
-It acts as the **orchestration layer** between:
+| Constant | Value | Description |
+|---|---|---|
+| `GAME_STATE_SESSION_KEY` | `"game_state"` | Key for storing GameState in session |
 
-- ChessEngine (game rules & logic)
-- GameState (data model)
-- SessionManager (state persistence)
-- UI layer (Streamlit)
+#### Stockfish Constants (`stockfish_constants.py`)
 
-It does NOT implement chess rules itself, but delegates all rule logic to the ChessEngine.
+| Constant | Description |
+|---|---|
+| `PROJECT_ROOT` | Project root directory (resolved from file location) |
+| `STOCKFISH_ROOT` | `assets/stockfish/` |
+| `STOCKFISH_BIN_DIR` | `assets/stockfish/bin/` |
+| `PLATFORM_KEY` | `"windows"`, `"macos"`, or `"linux"` |
+| `STOCKFISH_PATH` | Full path to the Stockfish executable |
+| `DIFFICULTY_TO_DEPTH` | Mapping: `{EASY: 3, MEDIUM: 10, HARD: 18}` |
 
----
+#### UI Constants (`ui_constants.py`)
 
-##  Responsibility
+| Constant | Value | Description |
+|---|---|---|
+| `PAGE_TITLE` | `"Chess Project"` | Browser tab title |
+| `PAGE_ICON` | `"♟️"` | Browser tab icon |
+| `PAGE_LAYOUT` | `"wide"` | Streamlit layout mode |
 
-The GameManager is responsible for:
+#### Display Helper (`modules/shared/helpers/display.py`)
 
-- Managing the lifecycle of a chess game
-- Coordinating moves between UI and ChessEngine
-- Maintaining and updating GameState
-- Persisting state using SessionManager
-- Synchronizing game status (running, finished, winner, etc.)
-
----
-
-## ❌ What this module does NOT do
-
-- Does NOT implement chess rules
-- Does NOT contain UI logic (Streamlit)
-- Does NOT directly manipulate session_state
-- Does NOT define game data structures
-- Does NOT replace ChessEngine responsibilities
-
----
-
-##  Architecture Role
-
-The GameManager acts as the **central controller** of the system:
-
-
-UI (Streamlit)
-↓
-GameManager
-↓
-ChessEngine
-↓
-GameState
-↓
-SessionManager
-
+- `format_label(value)` — converts enums and snake_case strings to user-facing titles (e.g., `"fifty_move_rule"` → `"Fifty Move Rule"`, `GameMode.BOT` → `"Bot"`).
 
 ---
 
-## 🔄 Game Flow
+### UI Screens
 
-The following diagram describes how a move flows through the system:
+**Location:** `modules/ui/`
 
+#### Home Screen (`home.py`)
 
-Player Action
-↓
-GameManager
-↓
-ChessEngine
-↓
-GameState Update
-↓
-SessionManager Save
-↓
-UI Refresh
+Landing page with a full-screen background image. Features a "Begin Game" button positioned over an ornamental plaque and an EN/AR language toggle button in the top-right corner. Uses CSS injection for styling.
 
+#### Mode Select (`mode_select.py`)
 
-This flow guarantees:
-- Centralized control of game logic
-- Consistent state updates
-- Persistent session storage
-- Clean separation between UI and backend logic
+Mode selection screen with two buttons: "Human Challenger" (Friend mode) and "Strategic AI" (Bot mode). Selecting AI preloads the Stockfish engine in the background. Includes a "Back" button to return home.
+
+#### Difficulty Selection (`difficulty.py`)
+
+A Streamlit dialog popup for selecting AI difficulty (Easy / Medium / Hard) with visual highlighting of the selected option. Includes a Confirm button to proceed to the game.
+
+#### Game Screen (`game.py`)
+
+The main game screen containing:
+- An 8×8 interactive chess board using Streamlit buttons.
+- Visual move hints: dots for empty target squares, rings for capturable pieces.
+- Chess clocks with live 1-second updates via `@st.fragment(run_every="1s")`.
+- Turn indicator ("White to move" / "Black to move").
+- Player name panels with captured piece display (computed from the board).
+- Move history panel (scrollable, SAN notation, alternating white/black moves).
+- Restart and End Game buttons.
+- Check warning toast.
+- Triggers promotion and result popups as needed.
+
+**Clock:** Default is 10 minutes per side (`_TIME_CONTROL_SECONDS = 600`). Timeout detection automatically ends the game with the opponent winning on time.
+
+**Move Handling:** Click a piece to select it, then click a valid destination to move. Invalid clicks deselect or select a different piece.
+
+#### Promotion Popup (`promotion.py`)
+
+A dialog popup for pawn promotion with four choices (Knight, Bishop, Rook, Queen) and a Confirm button. The default selection is Queen. The chosen piece is visually highlighted.
+
+#### Result Popup (`result.py`)
+
+A dialog popup displayed at game end showing the winner ("White Wins" / "Black Wins" / "Bot Wins") and the reason ("by Checkmate" / "on Time"). Offers "Play Again" and "Main Page" buttons. Uses a full-screen victory background image.
 
 ---
 
-#  Summary
+### Translations / i18n
 
-This architecture ensures a clean separation of concerns:
+**File:** `translations/i18n.py`
 
-- SessionManager → handles persistence
-- GameManager → controls game flow
-- ChessEngine → handles chess rules
-- GameState → stores game data
-- UI (Streamlit) → presentation layer
+#### Overview
 
-The result is a scalable, maintainable, and modular chess application architecture.
+A lightweight translation module supporting English and Arabic.
+
+#### API
+
+- `t(key, language)` — looks up a key in the current language map, falling back to English.
+- `normalize_language(language)` — normalizes language codes (`"ar"` → Arabic, everything else → English).
+
+#### Translation Maps
+
+Contains two dictionaries (`"en"` and `"ar"`) with keys covering all UI labels, buttons, messages, and game text. Arabic dictionary uses Arabic script for all labels.
+
+---
+
+## Architecture & Data Flow
+
+### Overall Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                     Streamlit UI                        │
+│  ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐  │
+│  │Home  │ │Mode  │ │Diff  │ │Game  │ │Promo │ │Result│  │
+│  │Screen│ │Select│ │Popup │ │Screen│ │Popup │ │Popup │  │
+│  └──────┘ └──────┘ └──────┘ └──────┘ └──────┘ └──────┘  │
+└───────────────────────┬─────────────────────────────────┘
+                        │
+┌───────────────────────▼────────────────────────────────┐
+│                    GameManager                         │
+│  ┌──────────────────────────────────────────────────┐  │
+│  │                GameState                         │  │
+│  └──────────────────────────────────────────────────┘  │
+└─────────┬──────────────────────┬───────────────────────┘
+          │                      │
+          ▼                      ▼
+    ┌────────────┐    ┌─────────────────┐
+    │ ChessEngine│    │ StockfishEngine │
+    │            │    │                 │
+    │python-chess│    │ stockfish lib   │
+    └────────────┘    └─────────────────┘
+          │
+          ▼
+   ┌──────────────┐
+   │SessionManager│
+   │              │
+   │st.session_   │
+   │state         │
+   └──────────────┘
+```
+
+### Data Flow (Player Move)
+
+```
+1. Player clicks a piece → square selected in session_state
+2. Player clicks destination → _handle_click() called
+3. GameManager.make_move() called
+4. ChessEngine.make_move() validates and executes the move
+5. _update_game_status() checks for game-ending conditions
+6. If BOT mode: StockfishEngine.get_best_move() → ChessEngine.make_move()
+7. _sync_session() persists the updated GameState
+8. Timer switches to the next player
+9. UI rerenders with updated board, clocks, and history
+```
+
+### Dependency Hierarchy
+
+```
+UI Layer (depends on GameManager, i18n)
+    │
+GameManager (depends on ChessEngine, StockfishEngine, GameState, SessionManager)
+    │
+ChessEngine (depends on BoardState, enums)
+StockfishEngine (depends on Difficulty, stockfish_constants)
+GameState (depends on enums, BoardState)
+SessionManager (depends on Streamlit)
+    │
+Shared Layer (constants, enums, helpers) — no dependencies on other modules
+```
+
+---
+
+## Configuration
+
+### Streamlit Theme (`.streamlit/config.toml`)
+
+| Setting | Value | Description |
+|---|---|---|
+| `base` | `"dark"` | Dark theme |
+| `primaryColor` | `#c9a24b` | Antique gold for buttons and highlights |
+| `backgroundColor` | `#241a10` | Dark walnut page background |
+| `secondaryBackgroundColor` | `#3a2a19` | Panel/card background |
+| `textColor` | `#ecdfc8` | Parchment text color |
+| `font` | `"serif"` | Serif font family |
+
+### Difficulty Levels
+
+| Level | Stockfish Search Depth |
+|---|---|
+| Easy | 3 |
+| Medium | 10 |
+| Hard | 18 |
+
+### Time Control
+
+Default: **10 minutes per side** with no increment. Change by modifying `_TIME_CONTROL_SECONDS` in `modules/ui/game.py`.
+
+### Stockfish Binary
+
+Automatic download location: `assets/stockfish/bin/<platform>/stockfish[.exe]`
+
+Supported platforms: Windows, macOS (Intel & Apple Silicon), Linux (x86_64 & ARM)
+
+---
+
+## Design Principles
+
+The project follows these architectural principles throughout:
+
+- **Single Responsibility Principle (SRP):** Each class has one clearly defined responsibility.
+- **Separation of Concerns:** Chess logic, game management, session handling, and UI are cleanly separated.
+- **Wrapper Pattern:** External libraries (`python-chess`, `stockfish`) are wrapped behind project-specific interfaces.
+- **Low Coupling:** Modules depend only on what they need; enums and models sit at the lowest dependency level.
+- **High Cohesion:** Related functionality is grouped within the same module.
+- **Data-Oriented Design:** Data containers (`GameState`, `BoardState`, `MoveRecord`) use `@dataclass` for clarity and simplicity.
+- **Framework Isolation:** Streamlit-specific code is limited to `SessionManager` and the UI module.
+
+---
+
+## License
+
+This project is provided for educational and personal use.
+
