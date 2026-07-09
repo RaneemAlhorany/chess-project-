@@ -392,14 +392,6 @@ def render(manager: GameManager) -> None:
 
     # ---- mode / difficulty (top-right) ----
     # (mode-info plaque was removed from the image, so no mode text here)
-    if mode == GameMode.BOT:
-        try:
-            bot_avail = manager._bot.is_available()
-            bot_depth = manager._bot.get_depth()
-        except Exception:
-            bot_avail = False
-            bot_depth = "-"
-        st.markdown(f"<div class='g-gold g-modeinfo'>AI: {'OK' if bot_avail else 'Missing'} (depth={bot_depth})</div>", unsafe_allow_html=True)
 
     # ---- player panels (names + captured; clocks are drawn by _render_clocks) ----
     st.markdown(f"<div class='g-gold g-oppname'>{opp_name}</div>", unsafe_allow_html=True)

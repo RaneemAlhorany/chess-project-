@@ -118,16 +118,10 @@ def _dialog():
 
     if st.button(t("difficulty_easy", lang), key="diff_easy", use_container_width=True):
         st.session_state.difficulty = "easy"
-        st.session_state.screen = "game"
-        st.rerun()
     if st.button(t("difficulty_medium", lang), key="diff_medium", use_container_width=True):
         st.session_state.difficulty = "medium"
-        st.session_state.screen = "game"
-        st.rerun()
     if st.button(t("difficulty_hard", lang), key="diff_hard", use_container_width=True):
         st.session_state.difficulty = "hard"
-        st.session_state.screen = "game"
-        st.rerun()
 
     if st.button(t("difficulty_confirm", lang), key="diff_confirm", use_container_width=True):
         if "difficulty" not in st.session_state:
