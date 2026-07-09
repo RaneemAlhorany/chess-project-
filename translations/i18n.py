@@ -127,7 +127,7 @@ _TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "game_end": "إنهاء اللعبة",
         "promote_pawn": "ترقية البيدق",
         "result_wins": "يفوز",
-        "reason_checkmate": "بالكش مات",
+        "reason_checkmate": "كش ملك",
         "reason_timeout": "بانتهاء الوقت",
         "button_play_again": "العب مجدداً",
         "button_main_page": "الصفحة الرئيسية",

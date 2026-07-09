@@ -15,13 +15,6 @@ def _image_base64(path):
 
 def _dialog_css():
     b64 = _image_base64(DIFF_IMAGE) if os.path.exists(DIFF_IMAGE) else ""
-    selected = st.session_state.get("difficulty")
-    highlight = ""
-    if selected:
-        highlight = (
-            f".st-key-diff_{selected} button p {{"
-            f" filter: drop-shadow(0 0 10px rgba(255,225,130,0.95)) !important; }}"
-        )
 
     st.markdown(
         f"""
@@ -101,7 +94,6 @@ def _dialog_css():
             transform: translateX(calc(-50% - 2px));
             width: 190px;
         }}
-        {highlight}
         </style>
         """,
         unsafe_allow_html=True,
@@ -122,6 +114,16 @@ def _dialog():
         st.session_state.difficulty = "medium"
     if st.button(t("difficulty_hard", lang), key="diff_hard", use_container_width=True):
         st.session_state.difficulty = "hard"
+
+    # highlight the chosen card — injected AFTER the buttons, so it reflects
+    # this click immediately (no second click needed)
+    selected = st.session_state.get("difficulty")
+    if selected:
+        st.markdown(
+            f"<style>.st-key-diff_{selected} button p {{"
+            f" filter: drop-shadow(0 0 10px rgba(255,225,130,0.95)) !important; }}</style>",
+            unsafe_allow_html=True,
+        )
 
     if st.button(t("difficulty_confirm", lang), key="diff_confirm", use_container_width=True):
         if "difficulty" not in st.session_state:

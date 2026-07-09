@@ -25,13 +25,6 @@ def _image_base64(path):
 
 def _dialog_css():
     b64 = _image_base64(PROMO_IMAGE) if os.path.exists(PROMO_IMAGE) else ""
-    selected = st.session_state.get("promotion_choice_name")
-    highlight = ""
-    if selected:
-        highlight = (
-            f".st-key-promo_{selected} button p {{"
-            f" filter: drop-shadow(0 0 10px rgba(255,225,130,0.95)) !important; }}"
-        )
 
     st.markdown(
         f"""
@@ -89,6 +82,11 @@ def _dialog_css():
             filter: drop-shadow(0 2px 2px rgba(0,0,0,0.8));
             z-index: 2;
         }}
+        /* Arabic title only — centered independently (English rule above unchanged) */
+        .promo-title-ar {{
+            left: 50% !important;
+            transform: translateX(-50%) translateY(17.5px) !important;
+        }}
 
         /* --- the four choices, each placed by CSS (own left / top) --- */
         .st-key-promo_knight, .st-key-promo_bishop,
@@ -112,7 +110,6 @@ def _dialog_css():
             width: 198px;
             z-index: 2;
         }}
-        {highlight}
         </style>
         """,
         unsafe_allow_html=True,
@@ -128,7 +125,8 @@ def _dialog(manager: GameManager):
     if "promotion_choice_name" not in st.session_state:
         st.session_state.promotion_choice_name = "queen"
 
-    st.markdown(f"<div class='promo-title'>{t('promote_pawn', lang)}</div>", unsafe_allow_html=True)
+    title_class = "promo-title promo-title-ar" if lang == "ar" else "promo-title"
+    st.markdown(f"<div class='{title_class}'>{t('promote_pawn', lang)}</div>", unsafe_allow_html=True)
 
     if st.button(t("promotion_knight", lang), key="promo_knight", use_container_width=True):
         st.session_state.promotion_choice_name = "knight"
@@ -138,6 +136,15 @@ def _dialog(manager: GameManager):
         st.session_state.promotion_choice_name = "rook"
     if st.button(t("promotion_queen", lang), key="promo_queen", use_container_width=True):
         st.session_state.promotion_choice_name = "queen"
+
+    # highlight the chosen piece — injected AFTER the buttons so it updates on one click
+    selected = st.session_state.get("promotion_choice_name")
+    if selected:
+        st.markdown(
+            f"<style>.st-key-promo_{selected} button p {{"
+            f" filter: drop-shadow(0 0 10px rgba(255,225,130,0.95)) !important; }}</style>",
+            unsafe_allow_html=True,
+        )
 
     if st.button(t("difficulty_confirm", lang), key="promo_confirm", use_container_width=True):
         name = st.session_state.get("promotion_choice_name", "queen")
