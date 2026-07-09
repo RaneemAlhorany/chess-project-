@@ -134,8 +134,7 @@ def render():
     if st.button(t("play_with_bot", lang), key="btn_bot", use_container_width=True):
         st.session_state.mode = "bot"
         if "preloaded_bot" not in st.session_state:
-            with st.spinner(t("preparing_ai", lang) if hasattr(t, '__call__') else "Preparing AI..."):
-                st.session_state.preloaded_bot = StockfishEngine()
+            st.session_state.preloaded_bot = StockfishEngine()   # load quietly, no spinner
 
         st.session_state.screen = "difficulty"    # bot -> pick difficulty first
         st.rerun()
